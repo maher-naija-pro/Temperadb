@@ -1,25 +1,60 @@
 run:
-  timeout: 5m
+  timeout: 10m
   go: "1.20"
+  modules-download-mode: readonly
+  allow-parallel-runners: true
+  allow-serial-runners: true
 
 linters:
   enable:
+    # Code formatting and style
     - gofmt
     - goimports
+    - whitespace
+    - gocognit
+    - gocyclo
+    - gomnd
+    - goprintffuncname
+    - goconst
+    - dupl
+    - funlen
+    - lll
+    - nestif
+    - wsl
+    
+    # Code correctness
     - govet
     - errcheck
     - staticcheck
     - gosimple
     - ineffassign
     - unused
-    - misspell
+    - deadcode
+    - varcheck
+    - structcheck
+    - typecheck
+    - unparam
+    - unconvert
+    - unconvert
     - gosec
-    - gocyclo
-    - dupl
-    - goconst
+    - noctx
+    - nolintlint
+    - nakedret
+    
+    # Performance
+    - prealloc
+    - makezero
+    - nilnil
+    - tenv
+    - usestdlibvars
+    
+    # Best practices
     - gocritic
     - godox
+    - godot
+    - goheader
     - gomnd
+    - gomodguard
     - goprintffuncname
     - gosec
     - gosimple

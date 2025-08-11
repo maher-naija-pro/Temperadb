@@ -1,0 +1,61 @@
+{
+    "name": "timeseriesdb-dev",
+    "version": "1.0.0",
+    "description": "Development dependencies for TimeSeriesDB project",
+    "private": true,
+    "scripts": {
+        "install-hooks": "pre-commit install --install-hooks",
+        "run-hooks": "pre-commit run --all-files",
+        "run-hooks-staged": "pre-commit run",
+        "update-hooks": "pre-commit autoupdate",
+        "clean-hooks": "pre-commit uninstall",
+        "lint": "pre-commit run golangci-lint --all-files",
+        "format": "pre-commit run go-fmt --all-files",
+        "test": "pre-commit run go-test --all-files",
+        "security": "pre-commit run go-gosec --all-files",
+        "coverage": "pre-commit run go-cover --all-files",
+        "benchmark": "pre-commit run go-benchmark-check --all-files"
+    },
+    "devDependencies": {
+        "@commitlint/cli": "^18.4.3",
+        "@commitlint/config-conventional": "^18.4.3",
+        "pre-commit": "^1.2.2"
+    },
+    "engines": {
+        "node": ">=16.0.0",
+        "npm": ">=8.0.0"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/yourusername/timeseriesdb.git"
+    },
+    "keywords": [
+        "golang",
+        "timeseries",
+        "database",
+        "development",
+        "linting",
+        "pre-commit"
+    ],
+    "author": "Your Name <your.email@example.com>",
+    "license": "MIT",
+    "pre-commit": {
+        "hooks": {
+            "go-fmt": {
+                "args": [
+                    "--write"
+                ]
+            },
+            "go-imports": {
+                "args": [
+                    "--write"
+                ]
+            },
+            "golangci-lint": {
+                "args": [
+                    "--fast"
+                ]
+            }
+        }
+    }
+}

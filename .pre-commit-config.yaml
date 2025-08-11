@@ -1,0 +1,206 @@
+repos:
+  # Go-specific hooks
+  - repo: https://github.com/dnephin/pre-commit-golang
+    rev: v0.5.1
+    hooks:
+      - id: go-fmt
+        args: [--write]
+      - id: go-imports
+        args: [--write]
+      - id: go-vet
+      - id: go-build
+      - id: go-test
+      - id: go-test-race
+      - id: go-cover
+      - id: go-mod-tidy
+      - id: golangci-lint
+        args: [--fast]
+      - id: go-critic
+      - id: go-cyclo
+        args: [--over=15]
+      - id: go-errcheck
+      - id: go-gosec
+      - id: go-misspell
+      - id: go-simple
+      - id: go-staticcheck
+      - id: go-unused
+      - id: go-imports
+        args: [--write]
+
+  # General code quality hooks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-json
+      - id: check-added-large-files
+      - id: check-merge-conflict
+      - id: check-case-conflict
+      - id: check-docstring-first
+      - id: debug-statements
+      - id: name-tests-test
+      - id: requirements-txt-fixer
+      - id: fix-byte-order-marker
+
+  # YAML formatting
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v3.1.0
+    hooks:
+      - id: prettier
+        types: [yaml, yml, json, markdown, md]
+
+  # Markdown linting
+  - repo: https://github.com/igorshubovych/markdownlint-cli
+    rev: v0.38.0
+    hooks:
+      - id: markdownlint
+        args: [--fix]
+
+  # Shell script linting
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.9.0.6
+    hooks:
+      - id: shellcheck
+        args: [--severity=warning]
+
+  # Git hooks
+  - repo: https://github.com/pre-commit/mirrors-yapf
+    rev: v0.40.0
+    hooks:
+      - id: yapf
+        types: [python]
+
+  # Security checks
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.4.0
+    hooks:
+      - id: detect-secrets
+        args: [--baseline, .secrets.baseline]
+
+  # License header check
+  - repo: https://github.com/apache/skywalking-eyes
+    rev: v0.5.0
+    hooks:
+      - id: license-eye
+        args: [header, fix]
+
+  # Dockerfile linting
+  - repo: https://github.com/hadolint/hadolint
+    rev: v2.12.0
+    hooks:
+      - id: hadolint-docker
+        args: [--ignore, DL3008, --ignore, DL3009]
+
+  # Terraform linting (if applicable)
+  - repo: https://github.com/antonbabenko/pre-commit-terraform
+    rev: v1.88.0
+    hooks:
+      - id: terraform_fmt
+      - id: terraform_docs
+      - id: terraform_tflint
+      - id: terraform_validate
+
+  # Makefile linting
+  - repo: https://github.com/mrtazz/checkmake
+    rev: v0.2.1
+    hooks:
+      - id: checkmake
+
+  # Spell checking
+  - repo: https://github.com/crate-ci/typos
+    rev: v1.16.0
+    hooks:
+      - id: typos
+        args: [--write-changes]
+
+  # Commit message format
+  - repo: https://github.com/alessandrojcm/commitlint-pre-commit-hook
+    rev: v9.5.0
+    hooks:
+      - id: commitlint
+        stages: [commit-msg]
+        args: [--config, .commitlintrc.js]
+
+  # Go module security
+  - repo: https://github.com/golang/go
+    rev: go1.22.0
+    hooks:
+      - id: go-mod-download
+      - id: go-mod-verify
+
+  # Custom local hooks
+  - repo: local
+    hooks:
+      - id: go-test-coverage
+        name: Go Test Coverage
+        entry: bash -c 'go test -coverprofile=coverage.out ./test/... && go tool cover -func=coverage.out | grep total | awk "{print \$3}" | sed "s/%//" | awk "{exit (\$1 < 80)}"'
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [commit]
+        description: "Ensure test coverage is above 80%"
+
+      - id: go-benchmark-check
+        name: Go Benchmark Check
+        entry: bash -c 'go test -bench=. -benchmem ./test/... | grep -E "(Benchmark|ns/op)" | head -10'
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [commit]
+        description: "Run benchmarks to check for performance regressions"
+
+      - id: security-scan
+        name: Security Scan
+        entry: bash -c 'if command -v gosec >/dev/null 2>&1; then gosec ./...; else echo "gosec not installed, skipping security scan"; fi'
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [commit]
+        description: "Run security vulnerability scan"
+
+      - id: dependency-check
+        name: Dependency Check
+        entry: bash -c 'go list -m -u all | grep -E "\[" || echo "All dependencies are up to date"'
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [commit]
+        description: "Check for outdated dependencies"
+
+      - id: code-complexity-check
+        name: Code Complexity Check
+        entry: bash -c 'find . -name "*.go" -not -path "./test/*" -not -path "./vendor/*" | xargs -I {} gocyclo -over 15 {} || echo "No overly complex functions found"'
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [commit]
+        description: "Check for overly complex functions"
+
+      - id: test-structure-check
+        name: Test Structure Check
+        entry: bash -c 'find ./test -name "*_test.go" -exec grep -l "func Test" {} \; | wc -l | awk "{if (\$1 < 3) exit 1; else print \"Found \$1 test files\"}"'
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [commit]
+        description: "Ensure minimum number of test files exist"
+
+      - id: documentation-check
+        name: Documentation Check
+        entry: bash -c 'if [ ! -f "README.md" ] || [ ! -f "TESTING.md" ] || [ ! -f "CI.md" ]; then echo "Missing required documentation files"; exit 1; fi; echo "Documentation check passed"'
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [commit]
+        description: "Check for required documentation files"
+
+      - id: makefile-targets-check
+        name: Makefile Targets Check
+        entry: bash -c 'if [ ! -f "Makefile" ]; then echo "Makefile not found"; exit 1; fi; grep -E "^[a-zA-Z_-]+:" Makefile | wc -l | awk "{if (\$1 < 5) exit 1; else print \"Found \$1 Makefile targets\"}"'
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [commit]
+        description: "Ensure Makefile has minimum required targets"

@@ -136,6 +136,9 @@ The project maintains high test coverage with comprehensive testing of:
 - **Formatting**: Automatic code formatting with `go fmt`
 - **Security**: Regular security scans with gosec
 - **Coverage**: Minimum 80% test coverage enforced
+- **Pre-commit Hooks**: Automatic quality checks before commits
+- **Complexity Analysis**: Function complexity and duplication detection
+- **Spell Checking**: Automated spelling and grammar validation
 
 ## 🚀 CI/CD Pipeline
 
@@ -148,6 +151,8 @@ The project uses GitHub Actions for continuous integration:
 - **Performance Monitoring**: Tracks benchmarks and performance metrics
 
 For detailed CI/CD information, see [CI.md](CI.md).
+
+For comprehensive linting and code quality information, see [LINTING.md](LINTING.md).
 
 **Response:**
 - Success: `200 OK` with "OK" message
