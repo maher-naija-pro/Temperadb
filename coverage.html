@@ -1,0 +1,538 @@
+
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>test: Go Coverage Report</title>
+		<style>
+			body {
+				background: black;
+				color: rgb(80, 80, 80);
+			}
+			body, pre, #legend span {
+				font-family: Menlo, monospace;
+				font-weight: bold;
+			}
+			#topbar {
+				background: black;
+				position: fixed;
+				top: 0; left: 0; right: 0;
+				height: 42px;
+				border-bottom: 1px solid rgb(80, 80, 80);
+			}
+			#content {
+				margin-top: 50px;
+			}
+			#nav, #legend {
+				float: left;
+				margin-left: 10px;
+			}
+			#legend {
+				margin-top: 12px;
+			}
+			#nav {
+				margin-top: 10px;
+			}
+			#legend span {
+				margin: 0 5px;
+			}
+			.cov0 { color: rgb(192, 0, 0) }
+.cov1 { color: rgb(128, 128, 128) }
+.cov2 { color: rgb(116, 140, 131) }
+.cov3 { color: rgb(104, 152, 134) }
+.cov4 { color: rgb(92, 164, 137) }
+.cov5 { color: rgb(80, 176, 140) }
+.cov6 { color: rgb(68, 188, 143) }
+.cov7 { color: rgb(56, 200, 146) }
+.cov8 { color: rgb(44, 212, 149) }
+.cov9 { color: rgb(32, 224, 152) }
+.cov10 { color: rgb(20, 236, 155) }
+
+		</style>
+	</head>
+	<body>
+		<div id="topbar">
+			<div id="nav">
+				<select id="files">
+				
+				<option value="file0">timeseriesdb/test/config.go (0.0%)</option>
+				
+				<option value="file1">timeseriesdb/test/helpers.go (0.0%)</option>
+				
+				<option value="file2">timeseriesdb/test/run.go (0.0%)</option>
+				
+				<option value="file3">timeseriesdb/test/suite.go (0.0%)</option>
+				
+				</select>
+			</div>
+			<div id="legend">
+				<span>not tracked</span>
+			
+				<span class="cov0">not covered</span>
+				<span class="cov8">covered</span>
+			
+			</div>
+		</div>
+		<div id="content">
+		
+		<pre class="file" id="file0" style="display: none">package test
+
+import (
+        "os"
+        "path/filepath"
+        "time"
+)
+
+// TestConfig holds configuration for tests
+type TestConfig struct {
+        Port           string
+        DataFile       string
+        TempDir        string
+        TestTimeout    time.Duration
+        BenchmarkCount int
+}
+
+// DefaultTestConfig returns the default test configuration
+func DefaultTestConfig() *TestConfig <span class="cov0" title="0">{
+        return &amp;TestConfig{
+                Port:           "8080",
+                DataFile:       "test_data.tsv",
+                TempDir:        "test",
+                TestTimeout:    30 * time.Second,
+                BenchmarkCount: 1000,
+        }
+}</span>
+
+// SetupTestEnvironment sets up the test environment
+func SetupTestEnvironment(config *TestConfig) error <span class="cov0" title="0">{
+        if config == nil </span><span class="cov0" title="0">{
+                config = DefaultTestConfig()
+        }</span>
+
+        // Create temp directory if it doesn't exist
+        <span class="cov0" title="0">if err := os.MkdirAll(config.TempDir, 0755); err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+
+        // Set environment variables
+        <span class="cov0" title="0">os.Setenv("PORT", config.Port)
+        os.Setenv("DATA_FILE", filepath.Join(config.TempDir, config.DataFile))
+        os.Setenv("LOG_LEVEL", "error") // Reduce log noise during tests
+
+        return nil</span>
+}
+
+// CleanupTestEnvironment cleans up the test environment
+func CleanupTestEnvironment(config *TestConfig) error <span class="cov0" title="0">{
+        if config == nil </span><span class="cov0" title="0">{
+                config = DefaultTestConfig()
+        }</span>
+
+        // Remove test files
+        <span class="cov0" title="0">testFile := filepath.Join(config.TempDir, config.DataFile)
+        if err := os.Remove(testFile); err != nil &amp;&amp; !os.IsNotExist(err) </span><span class="cov0" title="0">{
+                return err
+        }</span>
+
+        // Remove benchmark files
+        <span class="cov0" title="0">benchmarkFile := filepath.Join(config.TempDir, "benchmark_data.tsv")
+        if err := os.Remove(benchmarkFile); err != nil &amp;&amp; !os.IsNotExist(err) </span><span class="cov0" title="0">{
+                return err
+        }</span>
+
+        <span class="cov0" title="0">return nil</span>
+}
+
+// GetTestDataPath returns the full path for test data files
+func GetTestDataPath(filename string) string <span class="cov0" title="0">{
+        config := DefaultTestConfig()
+        return filepath.Join(config.TempDir, filename)
+}</span>
+
+// IsCIEnvironment checks if running in a CI environment
+func IsCIEnvironment() bool <span class="cov0" title="0">{
+        return os.Getenv("CI") != "" ||
+                os.Getenv("GITHUB_ACTIONS") != "" ||
+                os.Getenv("GITLAB_CI") != "" ||
+                os.Getenv("TRAVIS") != ""
+}</span>
+
+// GetTestTimeout returns the appropriate timeout for tests
+func GetTestTimeout() time.Duration <span class="cov0" title="0">{
+        config := DefaultTestConfig()
+
+        // Use shorter timeouts in CI environments
+        if IsCIEnvironment() </span><span class="cov0" title="0">{
+                return 10 * time.Second
+        }</span>
+
+        <span class="cov0" title="0">return config.TestTimeout</span>
+}
+</pre>
+		
+		<pre class="file" id="file1" style="display: none">package test
+
+import (
+        "bytes"
+        "encoding/json"
+        "fmt"
+        "net/http"
+        "strings"
+        "testing"
+        "time"
+
+        "github.com/stretchr/testify/assert"
+        "github.com/stretchr/testify/require"
+)
+
+// TestHelper provides utility functions for testing
+type TestHelper struct{}
+
+// NewTestHelper creates a new test helper instance
+func NewTestHelper() *TestHelper <span class="cov0" title="0">{
+        return &amp;TestHelper{}
+}</span>
+
+// CreateTestRequest creates a test HTTP request with the given method, body, and headers
+func (h *TestHelper) CreateTestRequest(method, url, body string, headers map[string]string) *http.Request <span class="cov0" title="0">{
+        req, err := http.NewRequest(method, url, strings.NewReader(body))
+        if err != nil </span><span class="cov0" title="0">{
+                panic(fmt.Sprintf("Failed to create test request: %v", err))</span>
+        }
+
+        // Set default headers
+        <span class="cov0" title="0">if headers == nil </span><span class="cov0" title="0">{
+                headers = make(map[string]string)
+        }</span>
+
+        // Set Content-Type for POST requests if not specified
+        <span class="cov0" title="0">if method == http.MethodPost &amp;&amp; headers["Content-Type"] == "" </span><span class="cov0" title="0">{
+                headers["Content-Type"] = "text/plain"
+        }</span>
+
+        // Apply custom headers
+        <span class="cov0" title="0">for key, value := range headers </span><span class="cov0" title="0">{
+                req.Header.Set(key, value)
+        }</span>
+
+        <span class="cov0" title="0">return req</span>
+}
+
+// ExecuteRequest executes an HTTP request and returns the response
+func (h *TestHelper) ExecuteRequest(req *http.Request) (*http.Response, error) <span class="cov0" title="0">{
+        client := &amp;http.Client{
+                Timeout: 10 * time.Second,
+        }
+        return client.Do(req)
+}</span>
+
+// AssertResponseStatus asserts that the response has the expected status code
+func (h *TestHelper) AssertResponseStatus(t *testing.T, resp *http.Response, expectedStatus int, message string) <span class="cov0" title="0">{
+        assert.Equal(t, expectedStatus, resp.StatusCode, message)
+}</span>
+
+// AssertResponseBody asserts that the response body matches the expected content
+func (h *TestHelper) AssertResponseBody(t *testing.T, resp *http.Response, expectedBody string, message string) <span class="cov0" title="0">{
+        bodyBytes, err := readResponseBody(resp)
+        require.NoError(t, err, "Failed to read response body")
+        assert.Equal(t, expectedBody, string(bodyBytes), message)
+}</span>
+
+// AssertResponseJSON asserts that the response body contains valid JSON matching the expected structure
+func (h *TestHelper) AssertResponseJSON(t *testing.T, resp *http.Response, expected interface{}, message string) <span class="cov0" title="0">{
+        bodyBytes, err := readResponseBody(resp)
+        require.NoError(t, err, "Failed to read response body")
+
+        var actual interface{}
+        err = json.Unmarshal(bodyBytes, &amp;actual)
+        require.NoError(t, err, "Failed to parse response as JSON")
+
+        assert.Equal(t, expected, actual, message)
+}</span>
+
+// GenerateLineProtocolData generates InfluxDB line protocol data for testing
+func (h *TestHelper) GenerateLineProtocolData(measurement string, tags map[string]string, fields map[string]float64, timestamp int64) string <span class="cov0" title="0">{
+        var parts []string
+
+        // Measurement and tags
+        measurementPart := measurement
+        if len(tags) &gt; 0 </span><span class="cov0" title="0">{
+                var tagParts []string
+                for k, v := range tags </span><span class="cov0" title="0">{
+                        tagParts = append(tagParts, fmt.Sprintf("%s=%s", k, v))
+                }</span>
+                <span class="cov0" title="0">measurementPart = fmt.Sprintf("%s,%s", measurement, strings.Join(tagParts, ","))</span>
+        }
+        <span class="cov0" title="0">parts = append(parts, measurementPart)
+
+        // Fields
+        var fieldParts []string
+        for k, v := range fields </span><span class="cov0" title="0">{
+                fieldParts = append(fieldParts, fmt.Sprintf("%s=%f", k, v))
+        }</span>
+        <span class="cov0" title="0">parts = append(parts, strings.Join(fieldParts, ","))
+
+        // Timestamp
+        parts = append(parts, fmt.Sprintf("%d", timestamp))
+
+        return strings.Join(parts, " ")</span>
+}
+
+// GenerateBulkLineProtocolData generates multiple lines of InfluxDB line protocol data
+func (h *TestHelper) GenerateBulkLineProtocolData(count int, baseTime int64) string <span class="cov0" title="0">{
+        var lines []string
+        for i := 0; i &lt; count; i++ </span><span class="cov0" title="0">{
+                line := h.GenerateLineProtocolData(
+                        "cpu",
+                        map[string]string{"host": fmt.Sprintf("server%02d", i)},
+                        map[string]float64{"value": float64(i)},
+                        baseTime+int64(i),
+                )
+                lines = append(lines, line)
+        }</span>
+        <span class="cov0" title="0">return strings.Join(lines, "\n")</span>
+}
+
+// readResponseBody reads and returns the response body as bytes
+func readResponseBody(resp *http.Response) ([]byte, error) <span class="cov0" title="0">{
+        defer resp.Body.Close()
+
+        var buf bytes.Buffer
+        _, err := buf.ReadFrom(resp.Body)
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+
+        <span class="cov0" title="0">return buf.Bytes(), nil</span>
+}
+
+// BenchmarkHelper provides utilities for benchmarking
+type BenchmarkHelper struct{}
+
+// NewBenchmarkHelper creates a new benchmark helper instance
+func NewBenchmarkHelper() *BenchmarkHelper <span class="cov0" title="0">{
+        return &amp;BenchmarkHelper{}
+}</span>
+
+// BenchmarkHTTPEndpoint benchmarks an HTTP endpoint with the given request
+func (h *BenchmarkHelper) BenchmarkHTTPEndpoint(b *testing.B, method, url, body string, headers map[string]string) <span class="cov0" title="0">{
+        helper := NewTestHelper()
+
+        b.ResetTimer()
+        b.ReportAllocs()
+
+        for i := 0; i &lt; b.N; i++ </span><span class="cov0" title="0">{
+                req := helper.CreateTestRequest(method, url, body, headers)
+                resp, err := helper.ExecuteRequest(req)
+                if err != nil </span><span class="cov0" title="0">{
+                        b.Fatal(err)
+                }</span>
+                <span class="cov0" title="0">resp.Body.Close()
+
+                if resp.StatusCode != http.StatusOK </span><span class="cov0" title="0">{
+                        b.Fatalf("Expected status 200, got %d", resp.StatusCode)
+                }</span>
+        }
+}
+</pre>
+		
+		<pre class="file" id="file2" style="display: none">package test
+
+import (
+        "os"
+        "testing"
+
+        "github.com/stretchr/testify/suite"
+)
+
+// TestMain is the entry point for running tests
+func TestMain(m *testing.M) <span class="cov0" title="0">{
+        // Setup test environment
+        config := DefaultTestConfig()
+        err := SetupTestEnvironment(config)
+        if err != nil </span><span class="cov0" title="0">{
+                panic("Failed to setup test environment: " + err.Error())</span>
+        }
+
+        // Run tests
+        <span class="cov0" title="0">exitCode := m.Run()
+
+        // Cleanup test environment
+        err = CleanupTestEnvironment(config)
+        if err != nil </span><span class="cov0" title="0">{
+                // Log cleanup error but don't fail tests
+                println("Warning: Failed to cleanup test environment: " + err.Error())
+        }</span>
+
+        <span class="cov0" title="0">os.Exit(exitCode)</span>
+}
+
+// RunTestSuite runs a specific test suite
+func RunTestSuite(t *testing.T, testSuite suite.TestingSuite) {<span class="cov0" title="0">
+        // This is a placeholder for custom test suite execution
+        // The actual suite.Run is handled by the testify framework
+}</span>
+
+// RunAllTests runs all test suites
+func RunAllTests(t *testing.T) {<span class="cov0" title="0">
+        // This function can be used to run multiple test suites
+        // or for custom test orchestration
+}</span>
+</pre>
+		
+		<pre class="file" id="file3" style="display: none">package test
+
+import (
+        "net/http"
+        "net/http/httptest"
+        "os"
+        "testing"
+
+        "timeseriesdb/internal/logger"
+        "timeseriesdb/internal/storage"
+
+        "github.com/stretchr/testify/suite"
+)
+
+// BaseTestSuite provides common functionality for all test suites
+type BaseTestSuite struct {
+        suite.Suite
+        server      *httptest.Server
+        storage     *storage.Storage
+        config      *TestConfig
+        originalEnv map[string]string
+}
+
+// SetupSuite runs once before all tests
+func (suite *BaseTestSuite) SetupSuite() <span class="cov0" title="0">{
+        // Initialize configuration
+        suite.config = DefaultTestConfig()
+
+        // Setup test environment
+        err := SetupTestEnvironment(suite.config)
+        suite.Require().NoError(err, "Failed to setup test environment")
+
+        // Backup original environment variables
+        suite.originalEnv = make(map[string]string)
+        for _, key := range []string{"PORT", "DATA_FILE", "LOG_LEVEL"} </span><span class="cov0" title="0">{
+                if val := os.Getenv(key); val != "" </span><span class="cov0" title="0">{
+                        suite.originalEnv[key] = val
+                }</span>
+        }
+
+        // Initialize logger for tests
+        <span class="cov0" title="0">logger.Init()
+
+        // Initialize test storage
+        suite.storage = storage.NewStorage(GetTestDataPath(suite.config.DataFile))</span>
+}
+
+// TearDownSuite runs once after all tests
+func (suite *BaseTestSuite) TearDownSuite() <span class="cov0" title="0">{
+        // Cleanup
+        if suite.server != nil </span><span class="cov0" title="0">{
+                suite.server.Close()
+        }</span>
+        <span class="cov0" title="0">if suite.storage != nil </span><span class="cov0" title="0">{
+                suite.storage.Close()
+        }</span>
+
+        // Cleanup test environment
+        <span class="cov0" title="0">err := CleanupTestEnvironment(suite.config)
+        suite.Require().NoError(err, "Failed to cleanup test environment")
+
+        // Restore original environment
+        for key, val := range suite.originalEnv </span><span class="cov0" title="0">{
+                os.Setenv(key, val)
+        }</span>
+        <span class="cov0" title="0">for key := range suite.originalEnv </span><span class="cov0" title="0">{
+                if _, exists := suite.originalEnv[key]; !exists </span><span class="cov0" title="0">{
+                        os.Unsetenv(key)
+                }</span>
+        }
+}
+
+// SetupTest runs before each test
+func (suite *BaseTestSuite) SetupTest() <span class="cov0" title="0">{
+        // Clear storage before each test
+        err := suite.storage.Clear()
+        suite.Require().NoError(err, "Failed to clear storage for test")
+}</span>
+
+// GetStorage returns the test storage instance
+func (suite *BaseTestSuite) GetStorage() *storage.Storage <span class="cov0" title="0">{
+        return suite.storage
+}</span>
+
+// GetConfig returns the test configuration
+func (suite *BaseTestSuite) GetConfig() *TestConfig <span class="cov0" title="0">{
+        return suite.config
+}</span>
+
+// SetServer sets the test server
+func (suite *BaseTestSuite) SetServer(server *httptest.Server) <span class="cov0" title="0">{
+        suite.server = server
+}</span>
+
+// GetServer returns the test server
+func (suite *BaseTestSuite) GetServer() *httptest.Server <span class="cov0" title="0">{
+        return suite.server
+}</span>
+
+// CreateTestServer creates a new test server with the given handler
+func (suite *BaseTestSuite) CreateTestServer(handler http.Handler) *httptest.Server <span class="cov0" title="0">{
+        server := httptest.NewServer(handler)
+        suite.SetServer(server)
+        return server
+}</span>
+
+// AssertHTTPResponse is a helper method to assert HTTP responses
+func (suite *BaseTestSuite) AssertHTTPResponse(t *testing.T, resp *http.Response, expectedStatus int, expectedBody string) <span class="cov0" title="0">{
+        helper := NewTestHelper()
+        helper.AssertResponseStatus(t, resp, expectedStatus, "Status code mismatch")
+        helper.AssertResponseBody(t, resp, expectedBody, "Response body mismatch")
+}</span>
+
+// GenerateTestData generates test data using the test helper
+func (suite *BaseTestSuite) GenerateTestData(measurement string, tags map[string]string, fields map[string]float64, timestamp int64) string <span class="cov0" title="0">{
+        helper := NewTestHelper()
+        return helper.GenerateLineProtocolData(measurement, tags, fields, timestamp)
+}</span>
+
+// GenerateBulkTestData generates bulk test data
+func (suite *BaseTestSuite) GenerateBulkTestData(count int, baseTime int64) string <span class="cov0" title="0">{
+        helper := NewTestHelper()
+        return helper.GenerateBulkLineProtocolData(count, baseTime)
+}</span>
+</pre>
+		
+		</div>
+	</body>
+	<script>
+	(function() {
+		var files = document.getElementById('files');
+		var visible;
+		files.addEventListener('change', onChange, false);
+		function select(part) {
+			if (visible)
+				visible.style.display = 'none';
+			visible = document.getElementById(part);
+			if (!visible)
+				return;
+			files.value = part;
+			visible.style.display = 'block';
+			location.hash = part;
+		}
+		function onChange() {
+			select(files.value);
+			window.scrollTo(0, 0);
+		}
+		if (location.hash != "") {
+			select(location.hash.substr(1));
+		}
+		if (!visible) {
+			select("file0");
+		}
+	})();
+	</script>
+</html>

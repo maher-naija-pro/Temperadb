@@ -62,3 +62,26 @@ func formatFloat(f float64) string {
 func (s *Storage) Close() {
 	s.file.Close()
 }
+
+// Clear truncates the file to clear all data (useful for testing)
+func (s *Storage) Clear() error {
+	// Close current file
+	s.file.Close()
+
+	// Truncate file to 0 bytes
+	err := os.Truncate(s.file.Name(), 0)
+	if err != nil {
+		return err
+	}
+
+	// Reopen file for writing
+	f, err := os.OpenFile(s.file.Name(), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		return err
+	}
+
+	s.file = f
+	s.writer = csv.NewWriter(f)
+	s.writer.Comma = '\t'
+	return nil
+}
