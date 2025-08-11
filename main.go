@@ -6,12 +6,14 @@ import (
 	"net/http"
 	"os"
 	"timeseriesdb/internal/logger"
+	"timeseriesdb/internal/parser"
+	"timeseriesdb/internal/storage"
 
 	"github.com/joho/godotenv"
 )
 
 var (
-	storage *Storage
+	storageInstance *storage.Storage
 )
 
 func main() {
@@ -31,8 +33,8 @@ func main() {
 	logger.Init()
 
 	// Initialize storage
-	storage = NewStorage(dataFile)
-	defer storage.Close()
+	storageInstance = storage.NewStorage(dataFile)
+	defer storageInstance.Close()
 
 	// HTTP handler for line protocol writes
 	http.HandleFunc("/write", handleWrite)
@@ -52,7 +54,7 @@ func handleWrite(w http.ResponseWriter, r *http.Request) {
 	lines := make([]byte, r.ContentLength)
 	r.Body.Read(lines)
 
-	points, err := ParseLineProtocol(string(lines))
+	points, err := parser.ParseLineProtocol(string(lines))
 	if err != nil {
 		logger.Errorf("Failed to parse line protocol: %v", err)
 		http.Error(w, "Bad request", 400)
@@ -60,7 +62,7 @@ func handleWrite(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for _, p := range points {
-		err := storage.WritePoint(p)
+		err := storageInstance.WritePoint(p)
 		if err != nil {
 			logger.Errorf("Failed to write point: %v", err)
 		}

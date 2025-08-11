@@ -1,4 +1,4 @@
-package main
+package storage
 
 import (
 	"encoding/csv"
@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 	"timeseriesdb/internal/logger"
+	"timeseriesdb/internal/types"
 )
 
 // Storage persists time-series data in TSV format
@@ -27,7 +28,7 @@ func NewStorage(path string) *Storage {
 }
 
 // WritePoint writes a time-series point to file
-func (s *Storage) WritePoint(p Point) error {
+func (s *Storage) WritePoint(p types.Point) error {
 	for k, v := range p.Fields {
 		row := []string{
 			p.Measurement,
