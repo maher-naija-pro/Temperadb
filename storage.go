@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
-    "github.com/sirupsen/logrus"
+	"timeseriesdb/internal/logger"
 )
 
 // Storage persists time-series data in TSV format
@@ -19,7 +19,7 @@ type Storage struct {
 func NewStorage(path string) *Storage {
 	f, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
-		logrus.Fatal("Error opening storage file: ", err)
+		logger.Fatalf("Error opening storage file: %v", err)
 	}
 	writer := csv.NewWriter(f)
 	writer.Comma = '\t'
@@ -61,4 +61,3 @@ func formatFloat(f float64) string {
 func (s *Storage) Close() {
 	s.file.Close()
 }
-

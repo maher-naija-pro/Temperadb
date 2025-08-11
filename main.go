@@ -5,9 +5,9 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"timeseriesdb/internal/logger"
 
 	"github.com/joho/godotenv"
-	"github.com/sirupsen/logrus"
 )
 
 var (
@@ -28,7 +28,7 @@ func main() {
 	}
 
 	// Initialize logger
-	logrus.SetFormatter(&logrus.TextFormatter{FullTimestamp: true})
+	logger.Init()
 
 	// Initialize storage
 	storage = NewStorage(dataFile)
@@ -37,7 +37,7 @@ func main() {
 	// HTTP handler for line protocol writes
 	http.HandleFunc("/write", handleWrite)
 
-	logrus.Infof("Starting TimeSeriesDB on port %s...", port)
+	logger.Infof("Starting TimeSeriesDB on port %s...", port)
 	log.Fatal(http.ListenAndServe(":"+port, nil))
 }
 
@@ -54,7 +54,7 @@ func handleWrite(w http.ResponseWriter, r *http.Request) {
 
 	points, err := ParseLineProtocol(string(lines))
 	if err != nil {
-		logrus.Error("Failed to parse line protocol: ", err)
+		logger.Errorf("Failed to parse line protocol: %v", err)
 		http.Error(w, "Bad request", 400)
 		return
 	}
@@ -62,11 +62,10 @@ func handleWrite(w http.ResponseWriter, r *http.Request) {
 	for _, p := range points {
 		err := storage.WritePoint(p)
 		if err != nil {
-			logrus.Error("Failed to write point: ", err)
+			logger.Errorf("Failed to write point: %v", err)
 		}
 	}
 
-	logrus.Infof("Wrote %d points", len(points))
+	logger.Infof("Wrote %d points", len(points))
 	fmt.Fprint(w, "OK")
 }
-
