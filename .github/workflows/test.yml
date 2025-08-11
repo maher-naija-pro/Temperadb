@@ -1,0 +1,267 @@
+name: Test Suite
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        go-version: [1.20, 1.21, '1.22']
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Go ${{ matrix.go-version }}
+      uses: actions/setup-go@v4
+      with:
+        go-version: ${{ matrix.go-version }}
+        cache: true
+        
+    - name: Install dependencies
+      run: |
+        go mod download
+        go mod verify
+        
+    - name: Run tests
+      run: |
+        go test -v -race -coverprofile=coverage.out ./test/...
+        
+    - name: Generate coverage report
+      run: |
+        go tool cover -func=coverage.out
+        go tool cover -html=coverage.out -o coverage.html
+        
+    - name: Upload coverage report
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-report-${{ matrix.go-version }}
+        path: |
+          coverage.out
+          coverage.html
+          
+    - name: Check test coverage threshold
+      run: |
+        COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print $3}' | sed 's/%//')
+        echo "Test coverage: $COVERAGE%"
+        if (( $(echo "$COVERAGE < 80" | bc -l) )); then
+          echo "❌ Test coverage is below 80%"
+          exit 1
+        else
+          echo "✅ Test coverage is above 80%"
+        fi
+
+  benchmark:
+    name: Run Benchmarks
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.22'
+        cache: true
+        
+    - name: Install dependencies
+      run: |
+        go mod download
+        go mod verify
+        
+    - name: Run benchmarks
+      run: |
+        echo "Running HTTP endpoint benchmarks..."
+        go test -bench=BenchmarkWriteEndpoint -benchmem ./test/...
+        echo ""
+        echo "Running bulk write benchmarks..."
+        go test -bench=BenchmarkBulkWriteEndpoint -benchmem ./test/...
+        echo ""
+        echo "Running request creation benchmarks..."
+        go test -bench=BenchmarkHTTPRequestCreation -benchmem ./test/...
+        
+    - name: Generate benchmark report
+      run: |
+        echo "## Benchmark Results" > benchmark-report.md
+        echo "" >> benchmark-report.md
+        echo "### HTTP Write Endpoint" >> benchmark-report.md
+        go test -bench=BenchmarkWriteEndpoint -benchmem ./test/... | tee -a benchmark-report.md
+        echo "" >> benchmark-report.md
+        echo "### Bulk Write Endpoint" >> benchmark-report.md
+        go test -bench=BenchmarkBulkWriteEndpoint -benchmem ./test/... | tee -a benchmark-report.md
+        echo "" >> benchmark-report.md
+        echo "### HTTP Request Creation" >> benchmark-report.md
+        go test -bench=BenchmarkHTTPRequestCreation -benchmem ./test/... | tee -a benchmark-report.md
+        
+    - name: Upload benchmark report
+      uses: actions/upload-artifact@v4
+      with:
+        name: benchmark-report
+        path: benchmark-report.md
+
+  lint:
+    name: Code Quality
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.22'
+        cache: true
+        
+    - name: Install golangci-lint
+      uses: golangci/golangci-lint-action@v4
+      with:
+        version: latest
+        
+    - name: Run linter
+      run: |
+        golangci-lint run ./...
+        
+    - name: Check code formatting
+      run: |
+        if [ "$(gofmt -s -l . | wc -l)" -gt 0 ]; then
+          echo "❌ Code is not properly formatted. Run 'go fmt ./...'"
+          gofmt -s -l .
+          exit 1
+        fi
+        echo "✅ Code is properly formatted"
+        
+    - name: Check for common issues
+      run: |
+        go vet ./...
+        echo "✅ Code analysis completed"
+
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.22'
+        cache: true
+        
+    - name: Install gosec
+      run: |
+        go install github.com/securecodewarrior/gosec/v2/cmd/gosec@latest
+        
+    - name: Run security scan
+      run: |
+        gosec -fmt=json -out=security-report.json ./...
+        
+    - name: Upload security report
+      uses: actions/upload-artifact@v4
+      with:
+        name: security-report
+        path: security-report.json
+
+  build:
+    name: Build Verification
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        go-version: ['1.22']
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Go ${{ matrix.go-version }}
+      uses: actions/setup-go@v4
+      with:
+        go-version: ${{ matrix.go-version }}
+        cache: true
+        
+    - name: Install dependencies
+      run: |
+        go mod download
+        go mod verify
+        
+    - name: Build application
+      run: |
+        go build -v -o timeseriesdb ./...
+        
+    - name: Test build output
+      run: |
+        if [ -f "timeseriesdb" ]; then
+          echo "✅ Build successful on ${{ matrix.os }}"
+        else
+          echo "❌ Build failed on ${{ matrix.os }}"
+          exit 1
+        fi
+        
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: timeseriesdb-${{ matrix.os }}
+        path: timeseriesdb
+
+  notify:
+    name: Notify Results
+    runs-on: ubuntu-latest
+    needs: [test, benchmark, lint, security, build]
+    if: always()
+    
+    steps:
+    - name: Check job status
+      run: |
+        echo "## Test Results Summary" > results.md
+        echo "" >> results.md
+        
+        if [ "${{ needs.test.result }}" == "success" ]; then
+          echo "✅ **Tests**: PASSED" >> results.md
+        else
+          echo "❌ **Tests**: FAILED" >> results.md
+        fi
+        
+        if [ "${{ needs.benchmark.result }}" == "success" ]; then
+          echo "✅ **Benchmarks**: PASSED" >> results.md
+        else
+          echo "❌ **Benchmarks**: FAILED" >> results.md
+        fi
+        
+        if [ "${{ needs.lint.result }}" == "success" ]; then
+          echo "✅ **Code Quality**: PASSED" >> results.md
+        else
+          echo "❌ **Code Quality**: FAILED" >> results.md
+        fi
+        
+        if [ "${{ needs.security.result }}" == "success" ]; then
+          echo "✅ **Security Scan**: PASSED" >> results.md
+        else
+          echo "❌ **Security Scan**: FAILED" >> results.md
+        fi
+        
+        if [ "${{ needs.build.result }}" == "success" ]; then
+          echo "✅ **Build**: PASSED" >> results.md
+        else
+          echo "❌ **Build**: FAILED" >> results.md
+        fi
+        
+        echo "" >> results.md
+        echo "View detailed results in the Actions tab." >> results.md
+        
+    - name: Upload results summary
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-results-summary
+        path: results.md

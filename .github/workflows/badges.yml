@@ -1,0 +1,74 @@
+name: Generate Badges
+
+on:
+  workflow_run:
+    workflows: ["Test Suite"]
+    types:
+      - completed
+
+jobs:
+  generate-badges:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion != 'skipped' }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Download coverage artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: coverage-report-1.22
+        path: coverage/
+        
+    - name: Generate coverage badge
+      run: |
+        if [ -f "coverage/coverage.out" ]; then
+          COVERAGE=$(go tool cover -func=coverage/coverage.out | grep total | awk '{print $3}' | sed 's/%//')
+          echo "Coverage: $COVERAGE%"
+          
+          # Generate badge using shields.io
+          if (( $(echo "$COVERAGE >= 90" | bc -l) )); then
+            COLOR="brightgreen"
+          elif (( $(echo "$COVERAGE >= 80" | bc -l) )); then
+            COLOR="green"
+          elif (( $(echo "$COVERAGE >= 70" | bc -l) )); then
+            COLOR="yellow"
+          elif (( $(echo "$COVERAGE >= 60" | bc -l) )); then
+            COLOR="orange"
+          else
+            COLOR="red"
+          fi
+          
+          echo "::set-output name=coverage::$COVERAGE"
+          echo "::set-output name=color::$COLOR"
+        else
+          echo "Coverage file not found"
+          echo "::set-output name=coverage::unknown"
+          echo "::set-output name=color::lightgrey"
+        fi
+        
+    - name: Update README badges
+      run: |
+        # Update coverage badge in README
+        sed -i "s/!\[Coverage\].*/![Coverage](https:\/\/img.shields.io\/badge\/coverage-${{ steps.generate-coverage-badge.outputs.coverage }}%25-${{ steps.generate-coverage-badge.outputs.color }}?style=flat-square)/" README.md
+        
+        # Update build status badge
+        if [ "${{ github.event.workflow_run.conclusion }}" == "success" ]; then
+          sed -i "s/!\[Build Status\].*/![Build Status](https:\/\/img.shields.io\/badge\/build-passing-brightgreen?style=flat-square)/" README.md
+        else
+          sed -i "s/!\[Build Status\].*/![Build Status](https:\/\/img.shields.io\/badge\/build-failing-red?style=flat-square)/" README.md
+        fi
+        
+    - name: Commit badge updates
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add README.md
+        git diff --quiet && git diff --staged --quiet || git commit -m "Update badges [skip ci]"
+        
+    - name: Push changes
+      uses: ad-m/github-push-action@master
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        branch: ${{ github.ref }}

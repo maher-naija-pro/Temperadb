@@ -1,5 +1,10 @@
 # TimeSeriesDB
 
+[![Build Status](https://img.shields.io/badge/build-passing-brightgreen?style=flat-square)](https://github.com/yourusername/timeseriesdb/actions)
+[![Coverage](https://img.shields.io/badge/coverage-80%25-green?style=flat-square)](https://github.com/yourusername/timeseriesdb/actions)
+[![Go Version](https://img.shields.io/badge/go-1.20+-blue?style=flat-square)](https://golang.org/)
+[![License](https://img.shields.io/badge/license-MIT-green?style=flat-square)](LICENSE)
+
 A lightweight, high-performance time series database written in Go that accepts InfluxDB line protocol for data ingestion.
 
 ## Features
@@ -97,6 +102,52 @@ Accepts time series data in InfluxDB line protocol format.
 - Method: POST
 - Content-Type: text/plain
 - Body: Line protocol data (one or more lines)
+
+## 🧪 Testing & Quality
+
+### Running Tests
+
+```bash
+# Run all tests
+make test
+
+# Run with verbose output
+make test-verbose
+
+# Generate coverage report
+make test-coverage
+
+# Run benchmarks
+make benchmark
+```
+
+### Test Coverage
+
+The project maintains high test coverage with comprehensive testing of:
+- HTTP endpoints and routing
+- Data parsing and validation
+- Storage operations
+- Error handling and edge cases
+- Performance benchmarks
+
+### Code Quality
+
+- **Linting**: golangci-lint with comprehensive rules
+- **Formatting**: Automatic code formatting with `go fmt`
+- **Security**: Regular security scans with gosec
+- **Coverage**: Minimum 80% test coverage enforced
+
+## 🚀 CI/CD Pipeline
+
+The project uses GitHub Actions for continuous integration:
+
+- **Automated Testing**: Runs on every push and PR
+- **Multi-Platform**: Tests on Ubuntu, Windows, and macOS
+- **Go Versions**: Supports Go 1.20, 1.21, and 1.22
+- **Quality Gates**: Enforces code quality and security standards
+- **Performance Monitoring**: Tracks benchmarks and performance metrics
+
+For detailed CI/CD information, see [CI.md](CI.md).
 
 **Response:**
 - Success: `200 OK` with "OK" message
