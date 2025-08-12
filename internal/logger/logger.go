@@ -4,7 +4,6 @@ import (
 	"io"
 	"os"
 	"timeseriesdb/config"
-
 	"github.com/sirupsen/logrus"
 )
 

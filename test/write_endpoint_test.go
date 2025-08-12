@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"timeseriesdb/config"
 	"timeseriesdb/internal/storage"
 	"timeseriesdb/internal/types"
 
@@ -31,7 +32,13 @@ func setupTestStorage(t *testing.T) *storage.Storage {
 	// Clean up any existing test file
 	os.Remove(testDataFile)
 
-	storageInstance := storage.NewStorage(testDataFile)
+	storageConfig := config.StorageConfig{
+		DataFile:    testDataFile,
+		MaxFileSize: 1073741824, // 1GB
+		BackupDir:   "backups",
+		Compression: false,
+	}
+	storageInstance := storage.NewStorage(storageConfig)
 	require.NotNil(t, storageInstance)
 	return storageInstance
 }
