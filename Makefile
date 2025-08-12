@@ -66,9 +66,9 @@ benchmark:
 	@echo "Running all benchmarks..."
 	$(GOCMD) test -bench=. -benchmem -timeout=5m ./test/
 
-.PHONY: benchmark-parser
-benchmark-parser:
-	@echo "Running parser benchmarks..."
+.PHONY: benchmark-ingestion
+benchmark-ingestion:
+	@echo "Running ingestion benchmarks..."
 	$(GOCMD) test -bench=BenchmarkParse -benchmem -timeout=5m ./test/
 
 .PHONY: benchmark-storage
@@ -97,7 +97,7 @@ benchmark-all:
 	@echo "  TimeSeriesDB Performance Benchmarks   "
 	@echo "========================================="
 	@echo ""
-	@echo "1. Parser Performance..."
+	@echo "1. Ingestion Performance..."
 	$(GOCMD) test -bench=BenchmarkParse -benchmem -timeout=5m ./test/
 	@echo ""
 	@echo "2. Storage Performance..."
@@ -237,7 +237,7 @@ performance-clean:
 benchmark-help:
 	@echo "Available benchmark targets:"
 	@echo "  benchmark         - Run all benchmarks"
-	@echo "  benchmark-parser  - Parser performance only"
+	@echo "  benchmark-ingestion  - Ingestion performance only"
 	@echo "  benchmark-storage - Storage performance only"
 	@echo "  benchmark-http    - HTTP endpoint performance only"
 	@echo "  benchmark-e2e     - End-to-end workflow performance only"
@@ -249,7 +249,7 @@ benchmark-help:
 	@echo ""
 	@echo "Quick commands:"
 	@echo "  go test -bench=. -benchmem ./test/                    # All benchmarks"
-	@echo "  go test -bench=BenchmarkParse -benchmem ./test/       # Parser only"
+	@echo "  go test -bench=BenchmarkParse -benchmem ./test/       # Ingestion only"
 	@echo "  go test -bench=BenchmarkWrite -benchmem ./test/       # Storage only"
 	@echo "  go test -bench=BenchmarkHTTP -benchmem ./test/        # HTTP only"
 

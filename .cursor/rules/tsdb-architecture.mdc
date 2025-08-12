@@ -2,7 +2,7 @@
 
 ## Data Flow
 1. **Ingestion**: HTTP POST to `/write` endpoint
-2. **Parsing**: InfluxDB line protocol parsing in `internal/parser/`
+2. **Ingestion**: InfluxDB line protocol ingestion in `internal/ingestion/`
 3. **Storage**: Data persistence in `internal/storage/`
 4. **Logging**: Consistent logging throughout the pipeline
 

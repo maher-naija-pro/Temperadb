@@ -99,7 +99,7 @@ func handleWrite(w http.ResponseWriter, r *http.Request, storageInstance *storag
 	fmt.Fprint(w, "OK")
 }
 
-// parseLineProtocol is copied from parser package for testing
+// parseLineProtocol is copied from ingestion package for testing
 func parseLineProtocol(input string) ([]types.Point, error) {
 	lines := strings.Split(strings.TrimSpace(input), "\n")
 	var points []types.Point
