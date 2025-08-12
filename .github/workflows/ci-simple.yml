@@ -19,7 +19,7 @@ jobs:
       with:
         go-version: '1.20'
         
-gs    - name: Init go.mod if missing
+    - name: Init go.mod if missing
       run: |
         if [ ! -f "go.mod" ]; then
           echo "go.mod not found, initializing for current project..."
