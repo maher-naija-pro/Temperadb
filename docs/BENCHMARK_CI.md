@@ -1,4 +1,6 @@
+
 # Benchmark CI System
+
 
 This document describes the comprehensive benchmark CI system for TimeSeriesDB, which automatically runs performance tests and provides detailed analysis.
 
@@ -106,7 +108,7 @@ For more control, you can run benchmarks directly:
 # All benchmarks
 go test -bench=. -benchmem ./test/
 
-# Specific benchmarks
+# Specific patterns
 go test -bench=BenchmarkParse -benchmem ./test/
 go test -bench=BenchmarkWrite -benchmem ./test/
 
@@ -184,8 +186,9 @@ go tool pprof cpu_profile.prof
 # Memory profile analysis
 go tool pprof memory_profile.prof
 
-# Web interface (if available)
+# Web interface
 go tool pprof -http=:8080 cpu_profile.prof
+go tool pprof -http=:8080 memory_profile.prof
 ```
 
 ## Continuous Monitoring
@@ -205,7 +208,6 @@ For pull requests, the CI system:
 - Comments on PR with performance summary
 - Flags potential regressions
 
-
 ## Best Practices
 
 ### For Developers
@@ -220,7 +222,6 @@ For pull requests, the CI system:
 1. **Consistent Environment**: Use the same Go versions and OS for reliable results
 2. **Artifact Retention**: Keep benchmark results for trend analysis
 3. **Failure Handling**: Ensure benchmarks don't block critical deployments
-
 
 ### Debugging
 
@@ -239,5 +240,65 @@ Planned improvements to the benchmark CI system:
 4. **Performance Budgets**: Automated enforcement of performance constraints
 5. **Cross-Platform Testing**: Benchmark execution on multiple operating systems
 6. **Hardware Profiling**: CPU and memory usage monitoring during benchmarks
+
+## Integration with Other Systems
+
+### Performance Regression Detection
+
+The benchmark CI system integrates with the performance regression detection system to:
+- Automatically detect performance regressions
+- Generate regression reports
+- Update performance dashboards
+- Trigger alerts for critical regressions
+
+### CI/CD Pipeline
+
+The benchmark system is part of the larger CI/CD pipeline:
+- Runs alongside other quality checks
+- Contributes to overall build status
+- Provides performance metrics for releases
+- Integrates with deployment automation
+
+## Troubleshooting
+
+### Common CI Issues
+
+**Benchmark timeouts:**
+- Increase timeout values in workflow files
+- Check for infinite loops in benchmark code
+- Verify benchmark data sizes
+
+**Memory issues:**
+- Monitor memory usage during benchmarks
+- Check for memory leaks in test code
+- Adjust memory limits in workflow configuration
+
+**Inconsistent results:**
+- Ensure consistent environment across runs
+- Check for external dependencies
+- Verify benchmark isolation
+
+### Local vs CI Differences
+
+**Environment differences:**
+- Go version variations
+- OS-specific optimizations
+- Hardware differences
+- Background processes
+
+**Resolution strategies:**
+- Use Docker for consistent environments
+- Standardize on specific Go versions
+- Document environment requirements
+- Use relative performance metrics
+
+## Next Steps
+
+- **[Performance Guide](PERFORMANCE.md)** - Complete performance testing guide
+- **[CI/CD Guide](CI_CD.md)** - CI/CD pipeline setup and management
+- **[Performance Monitoring](PERFORMANCE_MONITORING.md)** - Regression detection system
+- **[Installation Guide](INSTALLATION.md)** - Set up development environment
+
+For benchmark CI questions, check the [GitHub Issues](https://github.com/yourusername/timeseriesdb/issues) or create a new one.
 
 

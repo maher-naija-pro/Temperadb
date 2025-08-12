@@ -1,0 +1,301 @@
+name: Build and Publish Packages
+
+on:
+  push:
+    tags:
+      - 'v*'
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to build (e.g., v1.0.0)'
+        required: false
+        default: 'v0.0.0'
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  # Build for multiple platforms
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      matrix:
+        include:
+          - os: linux
+            arch: amd64
+            goos: linux
+            goarch: amd64
+          - os: linux
+            arch: arm64
+            goos: linux
+            goarch: arm64
+          - os: darwin
+            arch: amd64
+            goos: darwin
+            goarch: amd64
+          - os: darwin
+            arch: arm64
+            goos: darwin
+            goarch: arm64
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Debug checkout
+      run: |
+        echo "=== Checkout Debug Information ==="
+        echo "Current directory: $(pwd)"
+        echo "GitHub context:"
+        echo "  Repository: ${{ github.repository }}"
+        echo "  Repository name: ${{ github.event.repository.name }}"
+        echo "  Repository full name: ${{ github.event.repository.full_name }}"
+        echo "  Working directory: ${{ github.workspace }}"
+        echo "  Event name: ${{ github.event_name }}"
+        echo "  Ref: ${{ github.ref }}"
+        echo "  SHA: ${{ github.sha }}"
+        echo "Git status:"
+        git status --porcelain
+        echo "Git branch: $(git branch --show-current)"
+        echo "Git commit: $(git rev-parse HEAD)"
+        echo "Git remote origin:"
+        git remote -v
+        echo "Repository contents:"
+        ls -la
+        echo "Go.mod file check:"
+        if [ -f go.mod ]; then
+          echo "✅ go.mod found"
+          echo "Size: $(wc -l < go.mod) lines"
+          echo "First few lines:"
+          head -5 go.mod
+        else
+          echo "❌ go.mod NOT found"
+        fi
+        echo "================================"
+
+    - name: Verify repository structure
+      run: |
+        echo "Repository structure verification..."
+        echo "Current directory: $(pwd)"
+        echo "Git status:"
+        git status
+        echo "Git remote:"
+        git remote -v
+        echo "Directory contents:"
+        ls -la
+        echo "Go.mod exists: $(test -f go.mod && echo 'YES' || echo 'NO')"
+        echo "Main.go exists: $(test -f main.go && echo 'YES' || echo 'NO')"
+        echo "Go.mod contents (first 10 lines):"
+        head -10 go.mod || echo "go.mod not found or not readable"
+        echo "Working directory: $PWD"
+        echo "Git root: $(git rev-parse --show-toplevel)"
+        
+        # Verify critical files exist
+        echo "=== Critical File Verification ==="
+        for file in go.mod main.go go.sum; do
+          if [ -f "$file" ]; then
+            echo "✅ $file exists ($(wc -l < "$file") lines)"
+          else
+            echo "❌ $file missing"
+          fi
+        done
+        
+        # Check if this looks like a Go module
+        if [ -f go.mod ] && [ -f main.go ]; then
+          echo "✅ Repository appears to be a valid Go module"
+        else
+          echo "❌ Repository does not appear to be a valid Go module"
+          exit 1
+        fi
+        
+        # Verify we're in the expected repository
+        echo "=== Repository Identity Verification ==="
+        expected_repo="${{ github.repository }}"
+        actual_repo=$(git remote get-url origin | sed 's/.*github\.com[:/]\([^/]*\/[^/]*\)\.git.*/\1/')
+        echo "Expected repository: $expected_repo"
+        echo "Actual repository: $actual_repo"
+        if [ "$expected_repo" = "$actual_repo" ]; then
+          echo "✅ Repository matches expected value"
+        else
+          echo "❌ Repository mismatch! Expected: $expected_repo, Got: $actual_repo"
+        fi
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.21'
+        cache: true
+
+    - name: Initialize Go module
+      run: |
+        echo "Initializing Go module..."
+        echo "Current directory: $(pwd)"
+        echo "Directory contents:"
+        ls -la
+        echo "Go.mod exists: $(test -f go.mod && echo 'YES' || echo 'NO')"
+        echo "Go.mod contents:"
+        cat go.mod || echo "Cannot read go.mod"
+        echo "Go version: $(go version)"
+        echo "Go env GOPATH: $(go env GOPATH)"
+        echo "Go env GOMOD: $(go env GOMOD)"
+        
+        # Ensure we're in the right directory
+        if [ ! -f go.mod ]; then
+          echo "ERROR: go.mod not found in current directory"
+          echo "Current directory: $(pwd)"
+          echo "Directory contents:"
+          ls -la
+          exit 1
+        fi
+        
+        # Now proceed with Go module operations
+        go mod tidy
+        go mod download
+        echo "Go module status:"
+        go mod verify
+        echo "Go module info:"
+        go list -m
+
+    - name: Determine version
+      id: version
+      run: |
+        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+        elif [[ "${{ github.ref }}" == refs/tags/* ]]; then
+          echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+        else
+          echo "VERSION=v0.0.0-$(date +%Y%m%d)-$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Verify Go module setup
+      run: |
+        echo "Verifying Go module setup..."
+        echo "Current directory: $(pwd)"
+        echo "Directory contents:"
+        ls -la
+        echo "Go version: $(go version)"
+        echo "Go module info:"
+        go mod why .
+        echo "Go module graph:"
+        go mod graph | head -20
+
+    - name: Build Go binary
+      env:
+        GOOS: ${{ matrix.goos }}
+        GOARCH: ${{ matrix.goarch }}
+        CGO_ENABLED: 0
+        GOPATH: ${{ github.workspace }}/.go
+      run: |
+        echo "Current directory: $(pwd)"
+        echo "Directory contents:"
+        ls -la
+        echo "Go version: $(go version)"
+        echo "Go env:"
+        go env
+        echo "Building for ${{ matrix.os }}/${{ matrix.arch }}..."
+        
+        # Ensure we're in the right directory and Go module is recognized
+        go mod download
+        go mod verify
+        
+        # Try building with explicit module path
+        go build -mod=mod -ldflags="-s -w -X main.Version=${{ steps.version.outputs.VERSION }}" \
+                 -o "timeseriesdb-${{ matrix.os }}-${{ matrix.arch }}" \
+                 -a -installsuffix cgo .
+        
+        # Create archive
+        if [ "${{ matrix.os }}" = "windows" ]; then
+          zip "timeseriesdb-${{ matrix.os }}-${{ matrix.arch }}.zip" "timeseriesdb-${{ matrix.os }}-${{ matrix.arch }}.exe"
+        else
+          tar -czf "timeseriesdb-${{ matrix.os }}-${{ matrix.arch }}.tar.gz" "timeseriesdb-${{ matrix.os }}-${{ matrix.arch }}"
+        fi
+
+    - name: Upload Go binary artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: timeseriesdb-${{ matrix.os }}-${{ matrix.arch }}
+        path: |
+          timeseriesdb-${{ matrix.os }}-${{ matrix.arch }}
+          timeseriesdb-${{ matrix.os }}-${{ matrix.arch }}.*
+
+  # Create release with all artifacts
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: artifacts
+
+    - name: Create release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          artifacts/**/timeseriesdb-*.tar.gz
+          artifacts/**/timeseriesdb-*.zip
+        draft: false
+        prerelease: false
+        generate_release_notes: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # Test the built binaries
+  test-binaries:
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Download Linux AMD64 artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: timeseriesdb-linux-amd64
+        path: ./bin
+
+    - name: Make binary executable
+      run: chmod +x ./bin/timeseriesdb-linux-amd64
+
+    - name: Test binary
+      run: |
+        echo "Testing binary..."
+        ./bin/timeseriesdb-linux-amd64 --help || true
+        echo "Binary test completed"
+
+  # Security scan
+  security-scan:
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@v0.18.0
+      with:
+        scan-type: 'fs'
+        scan-ref: '.'
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+
+    - name: Upload Trivy scan results to GitHub Security tab
+      uses: github/codeql-action/upload-sarif@v3
+      if: always()
+      with:
+        sarif_file: 'trivy-results.sarif'

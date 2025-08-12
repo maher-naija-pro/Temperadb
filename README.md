@@ -16,256 +16,45 @@ A lightweight, high-performance time series database written in Go that accepts 
 - **Structured Logging**: Comprehensive logging with logrus
 - **High Performance**: Optimized for high-throughput time series data ingestion
 
-## Architecture
+## Quick Start
 
-The project consists of several key components:
+### Installation
 
-- **`main.go`**: HTTP server and main application logic
-- **`storage.go`**: Data storage and persistence layer
-- **`parser.go`**: InfluxDB line protocol parser
-- **`data.tsv`**: Time series data storage file
-
-## Prerequisites
-
-- Go 1.20 or higher
-- Git
-
-## Installation
-
-1. Clone the repository:
 ```bash
 git clone <your-repo-url>
 cd tsdb
-```
-
-2. Install dependencies:
-```bash
 go mod download
-```
-
-3. Build the application:
-```bash
 go build -o timeseriesdb
 ```
 
-## Configuration
+### Configuration
 
-Create a `.env` file in the project root with the following variables:
-
+Create a `.env` file:
 ```env
 PORT=8080
 DATA_FILE=data.tsv
 ```
 
-- `PORT`: HTTP server port (default: 8080)
-- `DATA_FILE`: Path to the TSV data file (default: data.tsv)
-
-## Usage
-
-### Starting the Server
+### Usage
 
 ```bash
+# Start the server
 ./timeseriesdb
-```
 
-The server will start on the configured port and begin accepting HTTP requests.
-
-### Writing Data
-
-Send POST requests to `/write` endpoint with InfluxDB line protocol data:
-
-```bash
+# Write data
 curl -X POST http://localhost:8080/write \
   -d "cpu,host=server01,region=us-west value=0.64 1434055562000000000"
 ```
 
-### Line Protocol Format
+## Documentation
 
-The server accepts standard InfluxDB line protocol:
+- **[Installation & Setup](docs/INSTALLATION.md)** - Detailed installation instructions and configuration
+- **[API Reference](docs/API_REFERENCE.md)** - Complete API documentation and examples
+- **[Development Guide](docs/DEVELOPMENT.md)** - Development setup, testing, and contribution guidelines
+- **[Performance & Benchmarks](docs/PERFORMANCE.md)** - Performance testing, benchmarks, and optimization
+- **[CI/CD Pipeline](docs/CI_CD.md)** - Continuous integration and deployment information
 
-```
-measurement[,tag_key=tag_value...] field_key=field_value[,field_key=field_value...] [timestamp]
-```
-
-Example:
-```
-cpu,host=server01,region=us-west value=0.64,user=23 1434055562000000000
-```
-
-## API Endpoints
-
-### POST /write
-
-Accepts time series data in InfluxDB line protocol format.
-
-**Request:**
-- Method: POST
-- Content-Type: text/plain
-- Body: Line protocol data (one or more lines)
-
-## 🧪 Testing & Quality
-
-### Running Tests
-
-```bash
-# Run all tests
-make test
-
-# Run with verbose output
-make test-verbose
-
-# Generate coverage report
-make test-coverage
-
-# Run benchmarks
-make benchmark
-
-# Run specific benchmark categories
-make benchmark-parser      # Parser performance only
-make benchmark-storage     # Storage performance only
-make benchmark-http        # HTTP endpoint performance only
-make benchmark-e2e         # End-to-end workflow performance only
-make benchmark-memory      # Memory usage performance only
-
-# Run all benchmarks with progress display
-make benchmark-all
-
-# Run with CPU and memory profiling
-make benchmark-profile
-
-# Get benchmark help
-make benchmark-help
-```
-
-### Test Coverage
-
-The project maintains high test coverage with comprehensive testing of:
-- HTTP endpoints and routing
-- Data parsing and validation
-- Storage operations
-- Error handling and edge cases
-- Performance benchmarks
-
-### Performance Benchmarks
-
-The project includes a comprehensive benchmark suite covering all major components:
-
-#### Benchmark Categories
-- **Parser Performance**: Line protocol parsing with various data sizes and complexities
-- **Storage Performance**: Point writing with different tag/field counts
-- **HTTP Endpoint Performance**: End-to-end HTTP write operations
-- **End-to-End Workflows**: Complete data processing pipelines
-- **Memory Usage**: Allocation tracking and memory profiling
-- **Concurrent Operations**: Parallel write performance testing
-
-#### Benchmark Features
-- **Realistic test data** with CPU metrics, tags, and fields
-- **Scalable datasets** from 1 to 10,000 lines
-- **Performance metrics** for throughput, latency, memory, and allocations
-- **Profiling support** for CPU and memory analysis
-- **Timeout protection** for long-running benchmarks
-
-#### Quick Benchmark Commands
-```bash
-# Run all benchmarks with progress display
-make benchmark-all
-
-# Run specific component benchmarks
-make benchmark-parser
-make benchmark-storage
-make benchmark-http
-
-# Run with profiling
-make benchmark-profile
-
-# Get help
-make benchmark-help
-```
-
-#### Manual Benchmark Execution
-```bash
-# All benchmarks
-go test -bench=. -benchmem ./test/
-
-# Specific patterns
-go test -bench=BenchmarkParse -benchmem ./test/
-go test -bench=BenchmarkWrite -benchmem ./test/
-go test -bench=BenchmarkHTTP -benchmem ./test/
-
-# With profiling
-go test -bench=BenchmarkParseLargeDataset -cpuprofile=cpu.prof -benchmem ./test/
-go test -bench=BenchmarkMemoryUsage -memprofile=memory.prof -benchmem ./test/
-```
-
-#### Understanding Benchmark Results
-
-Benchmark output format:
-```
-BenchmarkName-16         1000        1234567 ns/op        1234 B/op        10 allocs/op
-```
-
-- **BenchmarkName-16**: Name and CPU cores
-- **1000**: Number of iterations
-- **1234567 ns/op**: Time per operation (nanoseconds)
-- **1234 B/op**: Memory allocated per operation (bytes)
-- **10 allocs/op**: Number of allocations per operation
-
-#### Performance Metrics
-- **Throughput**: Operations per second (higher is better)
-- **Latency**: Time per operation (lower is better)
-- **Memory**: Bytes allocated per operation (lower is better)
-- **Allocations**: Number of memory allocations per operation (lower is better)
-
-#### Profiling and Analysis
-
-After running `make benchmark-profile`, you'll get:
-- `cpu_profile.prof` - CPU usage analysis
-- `memory_profile.prof` - Memory usage analysis
-
-Analyze profiles with:
-```bash
-go tool pprof cpu_profile.prof
-go tool pprof memory_profile.prof
-
-# Web interface
-go tool pprof -http=:8080 cpu_profile.prof
-go tool pprof -http=:8080 memory_profile.prof
-```
-
-#### Performance Tips
-1. **Run multiple times** to account for system variance
-2. **Use consistent environment** for comparable results
-3. **Monitor system resources** during execution
-4. **Profile first** to identify bottlenecks before optimizing
-
-### Code Quality
-
-- **Linting**: golangci-lint with comprehensive rules
-- **Formatting**: Automatic code formatting with `go fmt`
-- **Security**: Regular security scans with gosec
-- **Coverage**: Minimum 80% test coverage enforced
-
-## 🚀 CI/CD Pipeline
-
-The project uses GitHub Actions for continuous integration:
-
-- **Automated Testing**: Runs on every push and PR
-- **Multi-Platform**: Tests on Ubuntu, Windows, and macOS
-- **Go Versions**: Supports Go 1.20, 1.21, and 1.22
-- **Quality Gates**: Enforces code quality and security standards
-- **Performance Monitoring**: Tracks benchmarks and performance metrics
-- **Benchmark Regression Detection**: Monitors performance changes over time
-
-For detailed CI/CD information, see [CI.md](CI.md).
-
-**Response:**
-- Success: `200 OK` with "OK" message
-- Error: `400 Bad Request` for invalid line protocol
-- Error: `405 Method Not Allowed` for non-POST requests
-
-## Development
-
-### Project Structure
+## Project Structure
 
 ```
 tsdb/
@@ -275,56 +64,93 @@ tsdb/
 │   ├── parser/               # Line protocol parser
 │   ├── types/                # Data type definitions
 │   └── logger/               # Logging utilities
-├── test/                     # Test files
-│   ├── benchmark_test.go     # Comprehensive performance benchmarks
-│   └── write_endpoint_test.go # HTTP endpoint tests
+├── test/                     # Test files and benchmarks
+├── docs/                     # Documentation
+├── scripts/                  # Utility scripts
 ├── go.mod                    # Go module dependencies
-├── go.sum                    # Dependency checksums
-├── .gitignore               # Git ignore patterns
-├── Makefile                 # Build and test automation
-├── data.tsv                 # Time series data storage
-└── README.md                # This file
+└── Makefile                  # Build and test automation
 ```
 
-### Dependencies
-
-- `github.com/joho/godotenv`: Environment variable loading
-- `github.com/sirupsen/logrus`: Structured logging
-
-### Building
-
-```bash
-# Development build
-go build
-
-# Production build with optimizations
-go build -ldflags="-s -w" -o timeseriesdb
-
-# Cross-compilation for different platforms
-GOOS=linux GOARCH=amd64 go build -o timeseriesdb-linux
-GOOS=darwin GOARCH=amd64 go build -o timeseriesdb-macos
-GOOS=windows GOARCH=amd64 go build -o timeseriesdb-windows.exe
-```
-
-### Testing
+## Testing
 
 ```bash
 # Run all tests
-go test ./...
-
-# Run with coverage
-go test -cover ./...
+make test
 
 # Run benchmarks
-go test -bench=. -benchmem ./test/
+make benchmark
 
-# Run specific test patterns
-go test -run TestWrite ./test/
-go test -bench=BenchmarkParse ./test/
+# Run with coverage
+make test-coverage
 ```
+
+## CI/CD and Package Building
+
+This project includes comprehensive CI/CD workflows that automatically build and publish packages for multiple platforms.
+
+### Automated Builds
+
+The CI/CD system automatically builds packages when:
+- You push a tag (e.g., `git tag v1.0.0 && git push origin v1.0.0`)
+- You create a pull request
+- You manually trigger the workflow
+
+### Supported Platforms
+
+- **Linux**: AMD64, ARM64
+- **Windows**: AMD64
+- **macOS**: AMD64, ARM64 (Apple Silicon)
+
+### Building Locally
+
+```bash
+# Build for current platform
+make build
+
+# Build for specific platform
+make build-linux
+make build-windows
+make build-darwin
+
+# Build for all platforms
+make build-all
+
+# Build Docker image
+make build-docker
+
+# Clean build artifacts
+make clean-build
+
+# Show build help
+make build-help
+```
+
+### GitHub Packages
+
+When you create a release tag, the CI/CD system automatically:
+1. Builds binaries for all supported platforms
+2. Creates a GitHub release with downloadable artifacts
+3. Publishes Docker images to GitHub Container Registry
+4. Runs security scans and vulnerability checks
+
+### Docker Images
+
+Docker images are available at:
+```
+ghcr.io/yourusername/timeseriesdb:latest
+ghcr.io/yourusername/timeseriesdb:v1.0.0
+```
+
+### Manual Workflow Trigger
+
+You can manually trigger the build workflow:
+1. Go to Actions → Build and Publish Packages
+2. Click "Run workflow"
+3. Optionally specify a version
+4. Click "Run workflow"
 
 ## License
 
-MIT 
+MIT License - see [LICENSE](LICENSE) file for details. 
 
 

@@ -1,7 +1,48 @@
-# Makefile for TimeSeriesDB - Test and Coverage only
+# Makefile for TimeSeriesDB - Build, Test and Coverage
 
 # Go command
 GOCMD=go
+
+# Build variables
+VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
+BUILD_TIME ?= $(shell date -u '+%Y-%m-%d_%H:%M:%S')
+COMMIT_HASH ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+
+# Build targets
+.PHONY: build
+build:
+	@echo "Building TimeSeriesDB version $(VERSION)..."
+	$(GOCMD) build -ldflags="-s -w -X main.Version=$(VERSION) -X main.BuildTime=$(BUILD_TIME) -X main.CommitHash=$(COMMIT_HASH)" -o timeseriesdb .
+
+.PHONY: build-linux
+build-linux:
+	@echo "Building TimeSeriesDB for Linux AMD64..."
+	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 $(GOCMD) build -ldflags="-s -w -X main.Version=$(VERSION) -X main.BuildTime=$(BUILD_TIME) -X main.CommitHash=$(COMMIT_HASH)" -o timeseriesdb-linux-amd64 .
+
+.PHONY: build-windows
+build-windows:
+	@echo "Building TimeSeriesDB for Windows AMD64..."
+	GOOS=windows GOARCH=amd64 CGO_ENABLED=0 $(GOCMD) build -ldflags="-s -w -X main.Version=$(VERSION) -X main.BuildTime=$(BUILD_TIME) -X main.CommitHash=$(COMMIT_HASH)" -o timeseriesdb-windows-amd64.exe .
+
+.PHONY: build-darwin
+build-darwin:
+	@echo "Building TimeSeriesDB for macOS AMD64..."
+	GOOS=darwin GOARCH=amd64 CGO_ENABLED=0 $(GOCMD) build -ldflags="-s -w -X main.Version=$(VERSION) -X main.BuildTime=$(BUILD_TIME) -X main.CommitHash=$(COMMIT_HASH)" -o timeseriesdb-darwin-amd64 .
+
+.PHONY: build-all
+build-all: build-linux build-windows build-darwin
+	@echo "All builds completed!"
+
+.PHONY: build-docker
+build-docker:
+	@echo "Building Docker image..."
+	docker build --build-arg VERSION=$(VERSION) -t timeseriesdb:$(VERSION) .
+
+.PHONY: clean-build
+clean-build:
+	@echo "Cleaning build artifacts..."
+	rm -f timeseriesdb timeseriesdb-* *.tar.gz *.zip
+	@echo "Build artifacts cleaned."
 
 # Test targets
 .PHONY: test
@@ -238,6 +279,28 @@ performance-help:
 	@echo "Quick workflow:"
 	@echo "  make performance-monitor  # Complete monitoring workflow"
 	@echo "  make dashboard-open       # View results"
+
+# Build help
+.PHONY: build-help
+build-help:
+	@echo "Available build targets:"
+	@echo "  build         - Build for current platform"
+	@echo "  build-linux   - Build for Linux AMD64"
+	@echo "  build-windows - Build for Windows AMD64"
+	@echo "  build-darwin  - Build for macOS AMD64"
+	@echo "  build-all     - Build for all platforms"
+	@echo "  build-docker  - Build Docker image"
+	@echo "  clean-build   - Clean build artifacts"
+	@echo ""
+	@echo "Build variables:"
+	@echo "  VERSION       - Version to build (default: auto-detected)"
+	@echo "  BUILD_TIME    - Build timestamp (default: auto-detected)"
+	@echo "  COMMIT_HASH   - Git commit hash (default: auto-detected)"
+	@echo ""
+	@echo "Examples:"
+	@echo "  make build VERSION=v1.0.0"
+	@echo "  make build-all"
+	@echo "  make build-docker VERSION=v1.0.0"
 
 # Default target
 .DEFAULT_GOAL := test

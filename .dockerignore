@@ -1,0 +1,55 @@
+# Git
+.git
+.gitignore
+.github
+
+# Documentation
+README.md
+docs/
+*.md
+
+# Development files
+.vscode/
+.cursor/
+*.swp
+*.swo
+*~
+
+# Test files
+test/
+*_test.go
+coverage.out
+coverage.html
+
+# Benchmark results
+benchmark-results/
+performance-dashboard/
+
+# Scripts
+scripts/
+
+# Build artifacts
+*.exe
+*.dll
+*.so
+*.dylib
+timeseriesdb-*
+
+# Environment files
+.env
+.env.local
+
+# IDE files
+.idea/
+*.iml
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Temporary files
+tmp/
+temp/
