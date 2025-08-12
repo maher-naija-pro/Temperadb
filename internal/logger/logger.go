@@ -3,6 +3,7 @@ package logger
 import (
 	"io"
 	"os"
+	"timeseriesdb/config"
 
 	"github.com/sirupsen/logrus"
 )
@@ -95,6 +96,38 @@ func Init() {
 			Log.SetLevel(level)
 		}
 	}
+}
+
+// InitWithConfig initializes the global logger with the provided configuration
+func InitWithConfig(cfg config.LoggingConfig) {
+	baseLogger := logrus.New()
+
+	// Create custom logger
+	Log = &CustomLogger{
+		Logger:   baseLogger,
+		testMode: testMode,
+	}
+
+	// Set output based on mode
+	if testMode && testWriter != nil {
+		Log.SetOutput(testWriter)
+	} else {
+		// Set output based on configuration
+		switch cfg.Output {
+		case "stdout":
+			Log.SetOutput(os.Stdout)
+		case "stderr":
+			Log.SetOutput(os.Stderr)
+		default:
+			Log.SetOutput(os.Stdout)
+		}
+	}
+
+	// Set formatter based on configuration
+	Log.SetFormatter(cfg.GetLogFormat())
+
+	// Set log level from configuration
+	Log.SetLevel(cfg.GetLogLevel())
 }
 
 // Debug logs a debug message
