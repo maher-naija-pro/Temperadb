@@ -22,8 +22,8 @@ jobs:
     - name: Init go.mod if missing
       run: |
         if [ ! -f "go.mod" ]; then
-          echo "go.mod not found, initializing..."
-          go mod init example.com/autogen-mod
+          echo "go.mod not found, initializing for current project..."
+          go mod init timeseriesdb
         else
           echo "go.mod already exists."
         fi
