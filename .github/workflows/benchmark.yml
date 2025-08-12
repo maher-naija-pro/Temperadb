@@ -11,6 +11,12 @@ on:
   schedule:
     - cron: '0 2 * * *'
 
+# Grant necessary permissions for the workflow
+permissions:
+  issues: write
+  pull-requests: write
+  contents: read
+
 jobs:
   benchmark:
     runs-on: ubuntu-latest
