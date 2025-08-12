@@ -92,8 +92,21 @@ jobs:
       working-directory: .
       continue-on-error: true
       
-    - name: Upload regression reports
+    - name: Check if regression reports exist
       if: always() && steps.check-baseline.outputs.baseline-exists == 'true'
+      run: |
+        echo "Checking if regression reports exist..."
+        if ls benchmark-results/regression_report_* 1> /dev/null 2>&1; then
+          echo "Regression reports found, will upload artifacts"
+          echo "reports-exist=true" >> $GITHUB_OUTPUT
+        else
+          echo "No regression reports found, skipping artifact upload"
+          echo "reports-exist=false" >> $GITHUB_OUTPUT
+        fi
+      working-directory: .
+      
+    - name: Upload regression reports
+      if: always() && steps.check-baseline.outputs.baseline-exists == 'true' && steps.check-regression-reports.outputs.reports-exist == 'true'
       uses: actions/upload-artifact@v4
       with:
         name: performance-regression-reports-${{ matrix.go-version }}
@@ -102,7 +115,6 @@ jobs:
           benchmark-results/regression_report_*.html
           benchmark-results/regression_report_*.json
         retention-days: 90
-        if-no-files-found: warn
         
     - name: Comment on PR with regression summary
       if: github.event_name == 'pull_request' && steps.check-baseline.outputs.baseline-exists == 'true'
@@ -187,15 +199,27 @@ jobs:
         exit 1
       working-directory: .
       
-    - name: Upload benchmark results
+    - name: Check if benchmark file exists
       if: always()
+      run: |
+        echo "Checking if benchmark file exists..."
+        if [ -f "benchmark-results/benchmark_current_${{ github.sha }}.txt" ]; then
+          echo "Benchmark file exists, will upload artifact"
+          echo "file-exists=true" >> $GITHUB_OUTPUT
+        else
+          echo "Benchmark file does not exist, skipping artifact upload"
+          echo "file-exists=false" >> $GITHUB_OUTPUT
+        fi
+      working-directory: .
+      
+    - name: Upload benchmark results
+      if: always() && steps.check-benchmark-file.outputs.file-exists == 'true'
       uses: actions/upload-artifact@v4
       with:
         name: benchmark-results-${{ matrix.go-version }}
         path: |
           benchmark-results/benchmark_current_${{ github.sha }}.txt
         retention-days: 30
-        if-no-files-found: warn
         
     - name: Clean up temporary files
       if: always()
@@ -222,12 +246,22 @@ jobs:
       with:
         go-version: '1.22'
         
+    - name: Check dependency job status
+      run: |
+        echo "Performance regression job status: ${{ needs.performance-regression.result }}"
+        echo "Performance regression job conclusion: ${{ needs.performance-regression.conclusion }}"
+        
+        if [ "${{ needs.performance-regression.result }}" != "success" ]; then
+          echo "Warning: Performance regression job did not complete successfully"
+          echo "This may affect the availability of benchmark artifacts"
+        fi
+        
     - name: Download benchmark artifacts
       uses: actions/download-artifact@v4
       with:
         name: benchmark-results-1.22
         path: benchmark-results/
-        if-no-artifacts-found: warn
+      continue-on-error: true
         
     - name: Generate performance trends report
       run: |
@@ -244,6 +278,9 @@ jobs:
           echo "- The performance regression job failed" >> trends_report.txt
           echo "- No artifacts were uploaded" >> trends_report.txt
           echo "- Artifacts have expired" >> trends_report.txt
+          echo "" >> trends_report.txt
+          echo "Job Status: ${{ needs.performance-regression.result }}" >> trends_report.txt
+          echo "Job Conclusion: ${{ needs.performance-regression.conclusion }}" >> trends_report.txt
           exit 0
         fi
         
@@ -256,18 +293,23 @@ jobs:
         total_runs=$(ls benchmark-results/benchmark_*.txt 2>/dev/null | wc -l)
         echo "Total benchmark runs: $total_runs" >> trends_report.txt
         
-        # Find the most recent results
-        latest_file=$(ls -t benchmark-results/benchmark_*.txt 2>/dev/null | head -1)
-        if [ -n "$latest_file" ]; then
-          echo "Latest benchmark run: $latest_file" >> trends_report.txt
-          
-          # Extract some key metrics
-          echo "" >> trends_report.txt
-          echo "Latest benchmark results summary:" >> trends_report.txt
-          echo "--------------------------------" >> trends_report.txt
-          
-          # Show first few benchmark results
-          head -20 "$latest_file" >> trends_report.txt
+        if [ $total_runs -eq 0 ]; then
+          echo "No benchmark files found in the artifacts." >> trends_report.txt
+          echo "This suggests the benchmark step may have failed or the file was not created." >> trends_report.txt
+        else
+          # Find the most recent results
+          latest_file=$(ls -t benchmark-results/benchmark_*.txt 2>/dev/null | head -1)
+          if [ -n "$latest_file" ]; then
+            echo "Latest benchmark run: $latest_file" >> trends_report.txt
+            
+            # Extract some key metrics
+            echo "" >> trends_report.txt
+            echo "Latest benchmark results summary:" >> trends_report.txt
+            echo "--------------------------------" >> trends_report.txt
+            
+            # Show first few benchmark results
+            head -20 "$latest_file" >> trends_report.txt
+          fi
         fi
         
         echo "" >> trends_report.txt
@@ -275,7 +317,19 @@ jobs:
         
       working-directory: .
       
+    - name: Check if trends report was created
+      run: |
+        echo "Checking if trends report was created..."
+        if [ -f "trends_report.txt" ]; then
+          echo "Trends report exists, will upload artifact"
+          echo "report-exists=true" >> $GITHUB_OUTPUT
+        else
+          echo "Trends report does not exist, skipping artifact upload"
+          echo "report-exists=false" >> $GITHUB_OUTPUT
+        fi
+        
     - name: Upload trends report
+      if: steps.check-trends-report.outputs.report-exists == 'true'
       uses: actions/upload-artifact@v4
       with:
         name: performance-trends-report
