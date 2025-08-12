@@ -229,7 +229,6 @@ jobs:
   release:
     needs: build
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/')
     
     steps:
     - name: Checkout code
@@ -256,7 +255,6 @@ jobs:
   test-binaries:
     needs: build
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/')
     
     steps:
     - name: Checkout code
@@ -280,7 +278,6 @@ jobs:
   # Security scan
   security-scan:
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/')
     
     steps:
     - name: Checkout code
