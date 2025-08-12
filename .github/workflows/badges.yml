@@ -10,6 +10,9 @@ jobs:
   generate-badges:
     runs-on: ubuntu-latest
     if: ${{ github.event.workflow_run.conclusion != 'skipped' }}
+    permissions:
+      contents: write
+      actions: read
     
     steps:
     - name: Checkout code
@@ -22,30 +25,27 @@ jobs:
         path: coverage/
         
     - name: Generate coverage badge
+      id: generate-coverage-badge
       run: |
         if [ -f "coverage/coverage.out" ]; then
           COVERAGE=$(go tool cover -func=coverage/coverage.out | grep total | awk '{print $3}' | sed 's/%//')
           echo "Coverage: $COVERAGE%"
           
-          # Generate badge using shields.io
-          if (( $(echo "$COVERAGE >= 90" | bc -l) )); then
-            COLOR="brightgreen"
-          elif (( $(echo "$COVERAGE >= 80" | bc -l) )); then
-            COLOR="green"
-          elif (( $(echo "$COVERAGE >= 70" | bc -l) )); then
-            COLOR="yellow"
-          elif (( $(echo "$COVERAGE >= 60" | bc -l) )); then
-            COLOR="orange"
-          else
-            COLOR="red"
-          fi
+          # Generate badge using shields.io - use awk for floating point comparison
+          COLOR=$(awk -v cov="$COVERAGE" 'BEGIN {
+            if (cov >= 90) print "brightgreen"
+            else if (cov >= 80) print "green"
+            else if (cov >= 70) print "yellow"
+            else if (cov >= 60) print "orange"
+            else print "red"
+          }')
           
-          echo "::set-output name=coverage::$COVERAGE"
-          echo "::set-output name=color::$COLOR"
+          echo "coverage=$COVERAGE" >> $GITHUB_OUTPUT
+          echo "color=$COLOR" >> $GITHUB_OUTPUT
         else
           echo "Coverage file not found"
-          echo "::set-output name=coverage::unknown"
-          echo "::set-output name=color::lightgrey"
+          echo "coverage=unknown" >> $GITHUB_OUTPUT
+          echo "color=lightgrey" >> $GITHUB_OUTPUT
         fi
         
     - name: Update README badges

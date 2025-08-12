@@ -51,6 +51,12 @@ func handleWrite(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
+	// Handle negative or zero ContentLength
+	if r.ContentLength <= 0 {
+		http.Error(w, "Bad request", 400)
+		return
+	}
+
 	lines := make([]byte, r.ContentLength)
 	r.Body.Read(lines)
 

@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [ main, develop ]
 
+permissions:
+  contents: read
+  actions: read
+
 jobs:
   test:
     name: Run Tests
@@ -51,7 +55,8 @@ jobs:
       run: |
         COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print $3}' | sed 's/%//')
         echo "Test coverage: $COVERAGE%"
-        if (( $(echo "$COVERAGE < 80" | bc -l) )); then
+        THRESHOLD_PASSED=$(awk -v cov="$COVERAGE" 'BEGIN {print (cov >= 80) ? 1 : 0}')
+        if [ "$THRESHOLD_PASSED" -eq 0 ]; then
           echo "❌ Test coverage is below 80%"
           exit 1
         else
