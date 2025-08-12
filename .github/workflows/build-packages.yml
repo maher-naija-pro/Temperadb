@@ -20,7 +20,7 @@ env:
 
 # Grant necessary permissions for the workflow
 permissions:
-  contents: read
+  contents: write
   security-events: write
   actions: read
   pull-requests: read
@@ -248,6 +248,15 @@ jobs:
       with:
         path: artifacts
 
+    - name: Debug artifacts
+      run: |
+        echo "=== Artifacts Debug Information ==="
+        echo "Current directory: $(pwd)"
+        echo "Artifacts directory contents:"
+        find artifacts -type f -name "timeseriesdb-*" | sort
+        echo "Total artifacts found: $(find artifacts -type f -name "timeseriesdb-*" | wc -l)"
+        echo "================================"
+
     - name: Create release
       uses: softprops/action-gh-release@v1
       with:
@@ -258,6 +267,7 @@ jobs:
         draft: false
         prerelease: false
         generate_release_notes: true
+        fail_on_unmatched_files: false
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
