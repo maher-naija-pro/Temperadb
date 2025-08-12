@@ -42,3 +42,9 @@ gs    - name: Init go.mod if missing
     - name: Show coverage
       run: go tool cover -func=coverage.out
       working-directory: .
+      
+    - name: Quick benchmark check
+      run: |
+        echo "Running quick benchmark check..."
+        go test -bench=. -benchmem -timeout=2m ./test/ | head -20
+      working-directory: .
