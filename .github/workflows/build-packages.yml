@@ -17,11 +17,14 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
+  DOCKER_BUILDKIT: 1
+  BUILDX_NO_DEFAULT_ATTESTATIONS: 1
 
 jobs:
   # Build for multiple platforms
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     strategy:
       matrix:
         include:
@@ -55,13 +58,62 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
+    - name: Verify repository structure
+      run: |
+        echo "Repository structure verification..."
+        echo "Current directory: $(pwd)"
+        echo "Git status:"
+        git status
+        echo "Git remote:"
+        git remote -v
+        echo "Directory contents:"
+        ls -la
+        echo "Go.mod exists: $(test -f go.mod && echo 'YES' || echo 'NO')"
+        echo "Main.go exists: $(test -f main.go && echo 'YES' || echo 'NO')"
+
     - name: Set up Go
       uses: actions/setup-go@v4
       with:
-        go-version: '1.20'
+        go-version: '1.21'
+        cache: true
+
+    - name: Initialize Go module
+      run: |
+        echo "Initializing Go module..."
+        export GOPATH="$HOME/go"
+        export PATH="$GOPATH/bin:$PATH"
+        echo "GOPATH: $GOPATH"
+        echo "Current directory: $(pwd)"
+        echo "Directory contents:"
+        ls -la
+        go mod tidy
+        go mod download
+        echo "Go module status:"
+        go mod verify
+        echo "Go module info:"
+        go list -m
+
+    - name: Set up Docker
+      uses: docker/setup-docker-action@v4
+      with:
+        driver-opts: |
+          image=moby/buildkit:v0.12.4
 
     - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
+      uses: docker/setup-buildx-action@v4
+      with:
+        driver-opts: |
+          image=moby/buildkit:v0.12.4
+        buildkitd-flags: --debug
+        install: true
+        use: true
+        platforms: linux/amd64,linux/arm64
+
+    - name: Verify Docker Buildx
+      run: |
+        docker buildx version
+        docker buildx ls
+        docker buildx inspect --bootstrap
 
     - name: Determine version
       id: version
@@ -74,14 +126,39 @@ jobs:
           echo "VERSION=v0.0.0-$(date +%Y%m%d)-$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
         fi
 
+    - name: Verify Go module setup
+      run: |
+        echo "Verifying Go module setup..."
+        echo "Current directory: $(pwd)"
+        echo "Directory contents:"
+        ls -la
+        echo "Go version: $(go version)"
+        echo "Go module info:"
+        go mod why .
+        echo "Go module graph:"
+        go mod graph | head -20
+
     - name: Build Go binary
       env:
         GOOS: ${{ matrix.goos }}
         GOARCH: ${{ matrix.goarch }}
         CGO_ENABLED: 0
+        GOPATH: ${{ github.workspace }}/.go
       run: |
+        echo "Current directory: $(pwd)"
+        echo "Directory contents:"
+        ls -la
+        echo "Go version: $(go version)"
+        echo "Go env:"
+        go env
         echo "Building for ${{ matrix.os }}/${{ matrix.arch }}..."
-        go build -ldflags="-s -w -X main.Version=${{ steps.version.outputs.VERSION }}" \
+        
+        # Ensure we're in the right directory and Go module is recognized
+        go mod download
+        go mod verify
+        
+        # Try building with explicit module path
+        go build -mod=mod -ldflags="-s -w -X main.Version=${{ steps.version.outputs.VERSION }}" \
                  -o "timeseriesdb-${{ matrix.os }}-${{ matrix.arch }}" \
                  -a -installsuffix cgo .
         
@@ -145,6 +222,7 @@ jobs:
   publish-docker:
     needs: build
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     if: startsWith(github.ref, 'refs/tags/') && github.repository != 'outscale/tsdb'
     permissions:
       contents: read
@@ -154,8 +232,27 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
+    - name: Set up Docker
+      uses: docker/setup-docker-action@v4
+      with:
+        driver-opts: |
+          image=moby/buildkit:v0.12.4
+
     - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
+      uses: docker/setup-buildx-action@v4
+      with:
+        driver-opts: |
+          image=moby/buildkit:v0.12.4
+        buildkitd-flags: --debug
+        install: true
+        use: true
+        platforms: linux/amd64,linux/arm64
+
+    - name: Verify Docker Buildx
+      run: |
+        docker buildx version
+        docker buildx ls
+        docker buildx inspect --bootstrap
 
     - name: Log in to Container Registry
       uses: docker/login-action@v3
