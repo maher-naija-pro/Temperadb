@@ -13,7 +13,7 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Configuration
-BENCHMARK_DIR="test"
+BENCHMARK_DIR="./test"
 RESULTS_DIR="benchmark-results"
 TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
 CURRENT_RESULTS="$RESULTS_DIR/benchmark_$TIMESTAMP.txt"
@@ -129,43 +129,40 @@ compare_results() {
     echo "Baseline: $baseline_file" >> "$RESULTS_DIR/comparison_$TIMESTAMP.txt"
     echo "" >> "$RESULTS_DIR/comparison_$TIMESTAMP.txt"
     
-    # Use awk to compare results (simplified comparison)
-    awk '
-    BEGIN { 
-        print "Benchmark Name | Current (ns/op) | Baseline (ns/op) | Difference | Status"
-        print "---------------|------------------|------------------|------------|--------"
-    }
-    /^Benchmark/ {
-        gsub(/[^0-9.]/, "", $3)  # Extract ns/op value
-        current = $3
-        benchmark_name = $1
-        
-        # Try to find corresponding baseline result
-        cmd = "grep \"^" benchmark_name "\" \"'$baseline_file'\" | head -1"
-        cmd | getline baseline_line
-        if (baseline_line != "") {
-            gsub(/[^0-9.]/, "", baseline_line)
-            split(baseline_line, arr)
-            baseline = arr[3]
+    # Use a simpler approach to compare results
+    while IFS= read -r line; do
+        if [[ $line =~ ^Benchmark ]]; then
+            # Extract benchmark name and ns/op value
+            benchmark_name=$(echo "$line" | awk '{print $1}')
+            current_ns=$(echo "$line" | awk '{print $3}' | sed 's/[^0-9.]//g')
             
-            if (baseline != "") {
-                diff = current - baseline
-                pct = (diff / baseline) * 100
-                
-                if (diff < 0) {
-                    status = "✅ FASTER"
-                } else if (diff > 0) {
-                    status = "❌ SLOWER"
-                } else {
-                    status = "➡️  SAME"
-                }
-                
-                printf "%-15s | %15s | %15s | %+10.2f%% | %s\n", 
-                       benchmark_name, current, baseline, pct, status
-            }
-        }
-    }
-    ' "$current_file" >> "$RESULTS_DIR/comparison_$TIMESTAMP.txt"
+            if [[ -n "$current_ns" ]]; then
+                # Find corresponding baseline result
+                baseline_line=$(grep "^$benchmark_name" "$baseline_file" | head -1)
+                if [[ -n "$baseline_line" ]]; then
+                    baseline_ns=$(echo "$baseline_line" | awk '{print $3}' | sed 's/[^0-9.]//g')
+                    
+                    if [[ -n "$baseline_ns" ]]; then
+                        # Calculate difference
+                        diff=$(echo "$current_ns - $baseline_ns" | bc -l 2>/dev/null || echo "0")
+                        pct=$(echo "scale=2; ($diff / $baseline_ns) * 100" | bc -l 2>/dev/null || echo "0")
+                        
+                        if (( $(echo "$diff < 0" | bc -l) )); then
+                            status="✅ FASTER"
+                        elif (( $(echo "$diff > 0" | bc -l) )); then
+                            status="❌ SLOWER"
+                        else
+                            status="➡️  SAME"
+                        fi
+                        
+                        printf "%-25s | %15s | %15s | %+10.2f%% | %s\n" \
+                               "$benchmark_name" "$current_ns" "$baseline_ns" "$pct" "$status" \
+                               >> "$RESULTS_DIR/comparison_$TIMESTAMP.txt"
+                    fi
+                fi
+            fi
+        fi
+    done < "$current_file"
     
     print_success "Comparison saved to $RESULTS_DIR/comparison_$TIMESTAMP.txt"
     cat "$RESULTS_DIR/comparison_$TIMESTAMP.txt"
@@ -181,8 +178,8 @@ set_baseline() {
         return 1
     fi
     
-    cp "$current_file" "$baseline_file"
-    print_success "Baseline set to: $baseline_file"
+    cp "$current_file" "$BASELINE_RESULTS"
+    print_success "Baseline set to: $BASELINE_RESULTS"
 }
 
 # Parse command line arguments
@@ -279,7 +276,19 @@ main() {
     fi
     
     if [ "$SET_BASELINE" = true ]; then
-        set_baseline "$OUTPUT_FILE"
+        # If output file was specified, use it; otherwise use the most recent results file
+        if [ "$OUTPUT_FILE" != "$CURRENT_RESULTS" ]; then
+            set_baseline "$OUTPUT_FILE"
+        else
+            # Find the most recent benchmark results file
+            latest_file=$(ls -t "$RESULTS_DIR"/benchmark_*.txt 2>/dev/null | head -1)
+            if [ -n "$latest_file" ]; then
+                set_baseline "$latest_file"
+            else
+                print_error "No benchmark results found. Run benchmarks first."
+                exit 1
+            fi
+        fi
         exit 0
     fi
     

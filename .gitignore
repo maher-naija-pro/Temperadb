@@ -107,7 +107,15 @@ build/
 dist/
 
 # Data files
-data.tsv
+*.tsv
 
 # Go module files
 go.mod
+
+# Text files
+*.txt
+
+# Benchmark results
+benchmark-results/
+*.bench
+*.benchmark

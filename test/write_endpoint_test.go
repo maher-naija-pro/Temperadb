@@ -1,4 +1,4 @@
-package main
+package test
 
 import (
 	"fmt"
@@ -456,23 +456,23 @@ func TestWriteEndpointLargeData(t *testing.T) {
 func TestWriteEndpointMultipleSequentialRequests(t *testing.T) {
 	storageInstance := setupTestStorage(t)
 	defer cleanupTestStorage(t, storageInstance)
-	
+
 	server := createTestServer(storageInstance)
 	defer server.Close()
 
 	// Test multiple sequential requests
 	const numRequests = 5
-	
+
 	for i := 0; i < numRequests; i++ {
 		data := fmt.Sprintf("sequential_test,request_id=%d value=%.1f 1434055562000000000", i, float64(i))
 		req, err := http.NewRequest("POST", server.URL+"/write", strings.NewReader(data))
 		require.NoError(t, err)
 		req.ContentLength = int64(len(data))
-		
+
 		resp, err := http.DefaultClient.Do(req)
 		require.NoError(t, err)
 		defer resp.Body.Close()
-		
+
 		assert.Equal(t, 200, resp.StatusCode, "Sequential request should succeed")
 	}
 }
