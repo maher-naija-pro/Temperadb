@@ -109,11 +109,10 @@ dist/
 # Data files
 *.tsv
 
-# Go module files
-go.mod
 
 # Text files
 
 # Benchmark results
 *.bench*
-*.benchmark*
+*.benchmar
+k*
