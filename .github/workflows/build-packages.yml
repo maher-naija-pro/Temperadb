@@ -57,6 +57,39 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Debug checkout
+      run: |
+        echo "=== Checkout Debug Information ==="
+        echo "Current directory: $(pwd)"
+        echo "GitHub context:"
+        echo "  Repository: ${{ github.repository }}"
+        echo "  Repository name: ${{ github.event.repository.name }}"
+        echo "  Repository full name: ${{ github.event.repository.full_name }}"
+        echo "  Working directory: ${{ github.workspace }}"
+        echo "  Event name: ${{ github.event_name }}"
+        echo "  Ref: ${{ github.ref }}"
+        echo "  SHA: ${{ github.sha }}"
+        echo "Git status:"
+        git status --porcelain
+        echo "Git branch: $(git branch --show-current)"
+        echo "Git commit: $(git rev-parse HEAD)"
+        echo "Git remote origin:"
+        git remote -v
+        echo "Repository contents:"
+        ls -la
+        echo "Go.mod file check:"
+        if [ -f go.mod ]; then
+          echo "✅ go.mod found"
+          echo "Size: $(wc -l < go.mod) lines"
+          echo "First few lines:"
+          head -5 go.mod
+        else
+          echo "❌ go.mod NOT found"
+        fi
+        echo "================================"
 
     - name: Verify repository structure
       run: |
@@ -70,6 +103,40 @@ jobs:
         ls -la
         echo "Go.mod exists: $(test -f go.mod && echo 'YES' || echo 'NO')"
         echo "Main.go exists: $(test -f main.go && echo 'YES' || echo 'NO')"
+        echo "Go.mod contents (first 10 lines):"
+        head -10 go.mod || echo "go.mod not found or not readable"
+        echo "Working directory: $PWD"
+        echo "Git root: $(git rev-parse --show-toplevel)"
+        
+        # Verify critical files exist
+        echo "=== Critical File Verification ==="
+        for file in go.mod main.go go.sum; do
+          if [ -f "$file" ]; then
+            echo "✅ $file exists ($(wc -l < "$file") lines)"
+          else
+            echo "❌ $file missing"
+          fi
+        done
+        
+        # Check if this looks like a Go module
+        if [ -f go.mod ] && [ -f main.go ]; then
+          echo "✅ Repository appears to be a valid Go module"
+        else
+          echo "❌ Repository does not appear to be a valid Go module"
+          exit 1
+        fi
+        
+        # Verify we're in the expected repository
+        echo "=== Repository Identity Verification ==="
+        expected_repo="${{ github.repository }}"
+        actual_repo=$(git remote get-url origin | sed 's/.*github\.com[:/]\([^/]*\/[^/]*\)\.git.*/\1/')
+        echo "Expected repository: $expected_repo"
+        echo "Actual repository: $actual_repo"
+        if [ "$expected_repo" = "$actual_repo" ]; then
+          echo "✅ Repository matches expected value"
+        else
+          echo "❌ Repository mismatch! Expected: $expected_repo, Got: $actual_repo"
+        fi
 
     - name: Set up Go
       uses: actions/setup-go@v4
@@ -80,12 +147,26 @@ jobs:
     - name: Initialize Go module
       run: |
         echo "Initializing Go module..."
-        export GOPATH="$HOME/go"
-        export PATH="$GOPATH/bin:$PATH"
-        echo "GOPATH: $GOPATH"
         echo "Current directory: $(pwd)"
         echo "Directory contents:"
         ls -la
+        echo "Go.mod exists: $(test -f go.mod && echo 'YES' || echo 'NO')"
+        echo "Go.mod contents:"
+        cat go.mod || echo "Cannot read go.mod"
+        echo "Go version: $(go version)"
+        echo "Go env GOPATH: $(go env GOPATH)"
+        echo "Go env GOMOD: $(go env GOMOD)"
+        
+        # Ensure we're in the right directory
+        if [ ! -f go.mod ]; then
+          echo "ERROR: go.mod not found in current directory"
+          echo "Current directory: $(pwd)"
+          echo "Directory contents:"
+          ls -la
+          exit 1
+        fi
+        
+        # Now proceed with Go module operations
         go mod tidy
         go mod download
         echo "Go module status:"
