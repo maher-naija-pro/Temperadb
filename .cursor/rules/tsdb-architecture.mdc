@@ -1,0 +1,35 @@
+# TSDB Architecture Guidelines
+
+## Data Flow
+1. **Ingestion**: HTTP POST to `/write` endpoint
+2. **Parsing**: InfluxDB line protocol parsing in `internal/parser/`
+3. **Storage**: Data persistence in `internal/storage/`
+4. **Logging**: Consistent logging throughout the pipeline
+
+## Design Principles
+- **Separation of Concerns**: Each package has a single responsibility
+- **Interface Segregation**: Define clear interfaces between components
+- **Dependency Injection**: Use dependency injection for testability
+- **Error Propagation**: Handle errors gracefully throughout the stack
+
+## Storage Considerations
+- Use TSV format for simple, human-readable data storage
+- Implement proper file handling with `defer` for cleanup
+- Consider data compression for large datasets
+- Plan for data migration and versioning
+
+## Performance Guidelines
+- Batch writes when possible
+- Use efficient data structures for time series data
+- Implement connection pooling for database operations
+- Monitor memory usage and implement cleanup strategies
+
+## Extensibility
+- Design interfaces for pluggable storage backends
+- Support multiple data formats beyond line protocol
+- Plan for horizontal scaling and clustering
+- Consider adding query endpoints for data retrieval
+description:
+globs:
+alwaysApply: false
+---

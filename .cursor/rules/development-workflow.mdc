@@ -1,0 +1,50 @@
+# Development Workflow
+
+## Environment Setup
+- Use `.env` file for configuration
+- Set `PORT` for HTTP server
+- Set `DATA_FILE` for storage location (defaults to `data.tsv`)
+- Load environment variables with `godotenv.Load()`
+
+## Build and Test Commands
+```bash
+# Run all tests
+make test
+
+# Run tests with coverage
+make coverage
+
+# Clean coverage files
+make clean
+
+# View coverage in browser
+open coverage.html
+```
+
+## Code Quality
+- Run `go fmt ./...` to format code
+- Run `go vet ./...` to check for common mistakes
+- Use `golangci-lint` for comprehensive linting
+- Maintain high test coverage
+
+## Git Workflow
+- Use descriptive commit messages
+- Create feature branches for new functionality
+- Test thoroughly before merging to main
+- Keep commits atomic and focused
+
+## Debugging
+- Use the project logger for debugging: `logger.Debugf("debug info: %v", data)`
+- Set appropriate log levels for different environments
+- Use Go's built-in profiling tools when needed
+- Monitor HTTP request/response patterns
+
+## Deployment
+- Build with `go build -o tsdb main.go`
+- Set appropriate environment variables
+- Use process managers like systemd or supervisor
+- Monitor logs and performance metrics
+description:
+globs:
+alwaysApply: false
+---

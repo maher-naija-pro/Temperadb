@@ -1,0 +1,42 @@
+# Go Coding Standards
+
+## Code Style
+- Use `gofmt` for code formatting
+- Follow Go naming conventions (PascalCase for exported, camelCase for private)
+- Use meaningful variable names
+- Keep functions focused and single-purpose
+
+## Error Handling
+- Always check errors returned from functions
+- Use the project logger for error logging: `logger.Errorf("message: %v", err)`
+- Return errors up the call stack when appropriate
+- Use `defer` for cleanup operations
+
+## Package Organization
+- Keep packages in `internal/` for private code
+- Use clear, descriptive package names
+- Minimize package dependencies
+- Export only what's necessary for external use
+
+## HTTP Handling
+- Always check HTTP method before processing
+- Use appropriate HTTP status codes
+- Handle request body properly with `defer r.Body.Close()`
+- Validate input data before processing
+
+## Testing
+- Write tests for all public functions
+- Use table-driven tests for multiple test cases
+- Mock external dependencies when testing
+- Aim for high test coverage
+description:
+globs:
+alwaysApply: false
+## Commenting
+- Write comments to explain non-obvious code and complex logic for each line
+- Use full sentences and proper punctuation in comments
+- Update comments when code changes
+- Use Go-style comments for exported identifiers (e.g., `// FooBar does X`)
+- Avoid redundant comments that restate the code
+
+---
