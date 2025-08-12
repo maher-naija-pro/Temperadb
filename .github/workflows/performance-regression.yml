@@ -46,12 +46,16 @@ jobs:
     - name: Run benchmarks for current commit
       run: |
         echo "Running benchmarks for performance regression detection..."
+        # Ensure benchmark-results directory exists
+        mkdir -p benchmark-results
         ./scripts/run-benchmarks.sh -a -o "benchmark_current_${{ github.sha }}.txt"
       working-directory: .
       
     - name: Check if baseline exists
       id: check-baseline
       run: |
+        # Ensure benchmark-results directory exists
+        mkdir -p benchmark-results
         if [ -f "benchmark-results/baseline.txt" ]; then
           echo "baseline-exists=true" >> $GITHUB_OUTPUT
         else
@@ -63,6 +67,8 @@ jobs:
       if: steps.check-baseline.outputs.baseline-exists == 'false'
       run: |
         echo "No baseline found, setting current results as baseline..."
+        # Ensure benchmark-results directory exists
+        mkdir -p benchmark-results
         ./scripts/run-benchmarks.sh -b -o "benchmark_current_${{ github.sha }}.txt"
       working-directory: .
       
@@ -71,6 +77,8 @@ jobs:
       id: regression-check
       run: |
         echo "Running performance regression detection..."
+        # Ensure benchmark-results directory exists
+        mkdir -p benchmark-results
         ./scripts/detect-regressions.sh \
           -c "benchmark-results/benchmark_current_${{ github.sha }}.txt" \
           -t 5.0 \
@@ -90,6 +98,7 @@ jobs:
           benchmark-results/regression_report_*.html
           benchmark-results/regression_report_*.json
         retention-days: 90
+        if-no-files-found: warn
         
     - name: Comment on PR with regression summary
       if: github.event_name == 'pull_request' && steps.check-baseline.outputs.baseline-exists == 'true'
@@ -182,11 +191,14 @@ jobs:
         path: |
           benchmark-results/benchmark_current_${{ github.sha }}.txt
         retention-days: 30
+        if-no-files-found: warn
         
     - name: Clean up temporary files
       if: always()
       run: |
         echo "Cleaning up temporary files..."
+        # Ensure benchmark-results directory exists before cleanup
+        mkdir -p benchmark-results
         rm -f benchmark-results/benchmark_current_${{ github.sha }}.txt
       working-directory: .
 
@@ -209,10 +221,25 @@ jobs:
       with:
         name: benchmark-results-1.22
         path: benchmark-results/
+        if-no-artifacts-found: warn
         
     - name: Generate performance trends report
       run: |
         echo "Generating performance trends report..."
+        
+        # Check if benchmark artifacts were downloaded
+        if [ ! -d "benchmark-results" ] || [ -z "$(ls -A benchmark-results 2>/dev/null)" ]; then
+          echo "No benchmark artifacts found. Creating empty trends report."
+          echo "=== Performance Trends Summary ===" > trends_report.txt
+          echo "Generated: $(date)" >> trends_report.txt
+          echo "" >> trends_report.txt
+          echo "No benchmark data available for trends analysis." >> trends_report.txt
+          echo "This may happen if:" >> trends_report.txt
+          echo "- The performance regression job failed" >> trends_report.txt
+          echo "- No artifacts were uploaded" >> trends_report.txt
+          echo "- Artifacts have expired" >> trends_report.txt
+          exit 0
+        fi
         
         # Create a simple trends summary
         echo "=== Performance Trends Summary ===" > trends_report.txt
