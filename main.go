@@ -39,6 +39,9 @@ func main() {
 	// HTTP handler for line protocol writes
 	http.HandleFunc("/write", handleWrite)
 
+	// Health check endpoint
+	http.HandleFunc("/health", handleHealth)
+
 	logger.Infof("Starting TimeSeriesDB on port %s...", port)
 	log.Fatal(http.ListenAndServe(":"+port, nil))
 }
@@ -76,4 +79,15 @@ func handleWrite(w http.ResponseWriter, r *http.Request) {
 
 	logger.Infof("Wrote %d points", len(points))
 	fmt.Fprint(w, "OK")
+}
+
+// Health check endpoint
+func handleHealth(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", 405)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	fmt.Fprint(w, `{"status":"healthy","service":"TimeSeriesDB"}`)
 }
