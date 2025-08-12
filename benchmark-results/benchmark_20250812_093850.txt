@@ -1,0 +1,79 @@
+=== RUN   TestWriteEndpointHTTPMethods
+=== RUN   TestWriteEndpointHTTPMethods/GET_method_should_not_be_allowed
+=== RUN   TestWriteEndpointHTTPMethods/POST_method_should_be_allowed
+=== RUN   TestWriteEndpointHTTPMethods/PUT_method_should_not_be_allowed
+=== RUN   TestWriteEndpointHTTPMethods/DELETE_method_should_not_be_allowed
+=== RUN   TestWriteEndpointHTTPMethods/PATCH_method_should_not_be_allowed
+--- PASS: TestWriteEndpointHTTPMethods (0.00s)
+    --- PASS: TestWriteEndpointHTTPMethods/GET_method_should_not_be_allowed (0.00s)
+    --- PASS: TestWriteEndpointHTTPMethods/POST_method_should_be_allowed (0.00s)
+    --- PASS: TestWriteEndpointHTTPMethods/PUT_method_should_not_be_allowed (0.00s)
+    --- PASS: TestWriteEndpointHTTPMethods/DELETE_method_should_not_be_allowed (0.00s)
+    --- PASS: TestWriteEndpointHTTPMethods/PATCH_method_should_not_be_allowed (0.00s)
+=== RUN   TestWriteEndpointInvalidContentLength
+--- PASS: TestWriteEndpointInvalidContentLength (0.00s)
+=== RUN   TestWriteEndpointEmptyBody
+--- PASS: TestWriteEndpointEmptyBody (0.00s)
+=== RUN   TestWriteEndpointValidLineProtocol
+--- PASS: TestWriteEndpointValidLineProtocol (0.00s)
+=== RUN   TestWriteEndpointInvalidLineProtocol
+--- PASS: TestWriteEndpointInvalidLineProtocol (0.00s)
+=== RUN   TestWriteEndpointMalformedLineProtocol
+--- PASS: TestWriteEndpointMalformedLineProtocol (0.00s)
+=== RUN   TestWriteEndpointMultiplePoints
+--- PASS: TestWriteEndpointMultiplePoints (0.00s)
+=== RUN   TestWriteEndpointWithTags
+--- PASS: TestWriteEndpointWithTags (0.00s)
+=== RUN   TestWriteEndpointWithMultipleFields
+--- PASS: TestWriteEndpointWithMultipleFields (0.00s)
+=== RUN   TestWriteEndpointEmptyLines
+--- PASS: TestWriteEndpointEmptyLines (0.00s)
+=== RUN   TestWriteEndpointLargeData
+--- PASS: TestWriteEndpointLargeData (0.00s)
+=== RUN   TestWriteEndpointMultipleSequentialRequests
+--- PASS: TestWriteEndpointMultipleSequentialRequests (0.00s)
+=== RUN   TestWriteEndpointIntegration
+--- PASS: TestWriteEndpointIntegration (0.00s)
+goos: linux
+goarch: amd64
+pkg: timeseriesdb/test
+cpu: Intel Core Processor (Broadwell)
+BenchmarkParseSimpleLine
+BenchmarkParseSimpleLine-16      	 1343606	       895.9 ns/op	     880 B/op	      12 allocs/op
+BenchmarkParseComplexLine
+BenchmarkParseComplexLine-16     	  615421	      1802 ns/op	    1264 B/op	      20 allocs/op
+BenchmarkParseMultiLine
+BenchmarkParseMultiLine-16       	  262213	      4445 ns/op	    4928 B/op	      55 allocs/op
+BenchmarkParseLargeDataset
+BenchmarkParseLargeDataset-16    	     651	   1798627 ns/op	 1323135 B/op	   18013 allocs/op
+BenchmarkParseLineCounts
+BenchmarkParseLineCounts/1_line
+BenchmarkParseLineCounts/1_line-16         	  603728	      1815 ns/op	    1264 B/op	      20 allocs/op
+BenchmarkParseLineCounts/10_lines
+BenchmarkParseLineCounts/10_lines-16       	   66957	     17881 ns/op	   13872 B/op	     186 allocs/op
+BenchmarkParseLineCounts/100_lines
+BenchmarkParseLineCounts/100_lines-16      	    6766	    182108 ns/op	  136402 B/op	    1809 allocs/op
+BenchmarkParseLineCounts/1000_lines
+BenchmarkParseLineCounts/1000_lines-16     	     656	   1904568 ns/op	 1323125 B/op	   18013 allocs/op
+BenchmarkParseLineCounts/10000_lines
+BenchmarkParseLineCounts/10000_lines-16    	      52	  20517162 ns/op	14658142 B/op	  180026 allocs/op
+BenchmarkParseTagCounts
+BenchmarkParseTagCounts/2_tags
+BenchmarkParseTagCounts/2_tags-16          	 1336286	       892.2 ns/op	     880 B/op	      12 allocs/op
+BenchmarkParseTagCounts/5_tags
+BenchmarkParseTagCounts/5_tags-16          	  960723	      1152 ns/op	    1024 B/op	      15 allocs/op
+BenchmarkParseTagCounts/10_tags
+BenchmarkParseTagCounts/10_tags-16         	  551047	      2035 ns/op	    1880 B/op	      23 allocs/op
+BenchmarkParseTagCounts/20_tags
+BenchmarkParseTagCounts/20_tags-16         	  314644	      3721 ns/op	    3560 B/op	      35 allocs/op
+BenchmarkParseFieldCounts
+BenchmarkParseFieldCounts/1_field
+BenchmarkParseFieldCounts/1_field-16       	 1488992	       806.5 ns/op	     832 B/op	      11 allocs/op
+BenchmarkParseFieldCounts/5_fields
+BenchmarkParseFieldCounts/5_fields-16      	  849747	      1276 ns/op	    1024 B/op	      15 allocs/op
+BenchmarkParseFieldCounts/10_fields
+BenchmarkParseFieldCounts/10_fields-16     	  502606	      2266 ns/op	    1720 B/op	      23 allocs/op
+BenchmarkParseFieldCounts/20_fields
+BenchmarkParseFieldCounts/20_fields-16     	  238394	      4215 ns/op	    3128 B/op	      35 allocs/op
+PASS
+ok  	timeseriesdb/test	23.045s

@@ -1,0 +1,6 @@
+=== Benchmark Comparison ===
+Current: benchmark-results/storage_test.txt
+Baseline: benchmark-results/baseline.txt
+
+Benchmark Name | Current (ns/op) | Baseline (ns/op) | Difference | Status
+---------------|------------------|------------------|------------|--------

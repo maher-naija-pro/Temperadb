@@ -113,9 +113,7 @@ dist/
 go.mod
 
 # Text files
-*.txt
 
 # Benchmark results
-benchmark-results/
-*.bench
-*.benchmark
+*.bench*
+*.benchmark*

@@ -1,0 +1,21 @@
+=== Benchmark Comparison ===
+Current: benchmark-results/all_benchmarks.txt
+Baseline: benchmark-results/baseline.txt
+
+BenchmarkParseSimpleLine-16 |           886.6 |           895.9 |      -1.00% | ✅ FASTER
+BenchmarkParseComplexLine-16 |            1816 |            1802 |      +0.00% | ❌ SLOWER
+BenchmarkParseMultiLine-16 |            4435 |            4445 |      +0.00% | ✅ FASTER
+BenchmarkParseLargeDataset-16 |         1799211 |         1798627 |      +0.00% | ❌ SLOWER
+BenchmarkParseLineCounts/1_line-16 |            1808 |            1815 |      +0.00% | ✅ FASTER
+BenchmarkParseLineCounts/10_lines-16 |           17973 |           17881 |      +0.00% | ❌ SLOWER
+BenchmarkParseLineCounts/100_lines-16 |          175012 |          182108 |      -3.00% | ✅ FASTER
+BenchmarkParseLineCounts/1000_lines-16 |         1814099 |         1904568 |      -4.00% | ✅ FASTER
+BenchmarkParseLineCounts/10000_lines-16 |        20282468 |        20517162 |      -1.00% | ✅ FASTER
+BenchmarkParseTagCounts/2_tags-16 |           914.4 |           892.2 |      +2.00% | ❌ SLOWER
+BenchmarkParseTagCounts/5_tags-16 |            1187 |            1152 |      +3.00% | ❌ SLOWER
+BenchmarkParseTagCounts/10_tags-16 |            2073 |            2035 |      +1.00% | ❌ SLOWER
+BenchmarkParseTagCounts/20_tags-16 |            3766 |            3721 |      +1.00% | ❌ SLOWER
+BenchmarkParseFieldCounts/1_field-16 |           821.7 |           806.5 |      +1.00% | ❌ SLOWER
+BenchmarkParseFieldCounts/5_fields-16 |            1308 |            1276 |      +2.00% | ❌ SLOWER
+BenchmarkParseFieldCounts/10_fields-16 |            2308 |            2266 |      +1.00% | ❌ SLOWER
+BenchmarkParseFieldCounts/20_fields-16 |            4375 |            4215 |      +3.00% | ❌ SLOWER
