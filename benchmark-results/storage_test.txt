@@ -1,0 +1,50 @@
+=== RUN   TestWriteEndpointHTTPMethods
+=== RUN   TestWriteEndpointHTTPMethods/GET_method_should_not_be_allowed
+=== RUN   TestWriteEndpointHTTPMethods/POST_method_should_be_allowed
+=== RUN   TestWriteEndpointHTTPMethods/PUT_method_should_not_be_allowed
+=== RUN   TestWriteEndpointHTTPMethods/DELETE_method_should_not_be_allowed
+=== RUN   TestWriteEndpointHTTPMethods/PATCH_method_should_not_be_allowed
+--- PASS: TestWriteEndpointHTTPMethods (0.00s)
+    --- PASS: TestWriteEndpointHTTPMethods/GET_method_should_not_be_allowed (0.00s)
+    --- PASS: TestWriteEndpointHTTPMethods/POST_method_should_be_allowed (0.00s)
+    --- PASS: TestWriteEndpointHTTPMethods/PUT_method_should_not_be_allowed (0.00s)
+    --- PASS: TestWriteEndpointHTTPMethods/DELETE_method_should_not_be_allowed (0.00s)
+    --- PASS: TestWriteEndpointHTTPMethods/PATCH_method_should_not_be_allowed (0.00s)
+=== RUN   TestWriteEndpointInvalidContentLength
+--- PASS: TestWriteEndpointInvalidContentLength (0.00s)
+=== RUN   TestWriteEndpointEmptyBody
+--- PASS: TestWriteEndpointEmptyBody (0.00s)
+=== RUN   TestWriteEndpointValidLineProtocol
+--- PASS: TestWriteEndpointValidLineProtocol (0.00s)
+=== RUN   TestWriteEndpointInvalidLineProtocol
+--- PASS: TestWriteEndpointInvalidLineProtocol (0.00s)
+=== RUN   TestWriteEndpointMalformedLineProtocol
+--- PASS: TestWriteEndpointMalformedLineProtocol (0.00s)
+=== RUN   TestWriteEndpointMultiplePoints
+--- PASS: TestWriteEndpointMultiplePoints (0.00s)
+=== RUN   TestWriteEndpointWithTags
+--- PASS: TestWriteEndpointWithTags (0.00s)
+=== RUN   TestWriteEndpointWithMultipleFields
+--- PASS: TestWriteEndpointWithMultipleFields (0.00s)
+=== RUN   TestWriteEndpointEmptyLines
+--- PASS: TestWriteEndpointEmptyLines (0.00s)
+=== RUN   TestWriteEndpointLargeData
+--- PASS: TestWriteEndpointLargeData (0.00s)
+=== RUN   TestWriteEndpointMultipleSequentialRequests
+--- PASS: TestWriteEndpointMultipleSequentialRequests (0.00s)
+=== RUN   TestWriteEndpointIntegration
+--- PASS: TestWriteEndpointIntegration (0.00s)
+goos: linux
+goarch: amd64
+pkg: timeseriesdb/test
+cpu: Intel Core Processor (Broadwell)
+BenchmarkWriteSinglePoint
+BenchmarkWriteSinglePoint-16            	  343320	      3575 ns/op	     164 B/op	       8 allocs/op
+BenchmarkWriteMultiplePoints
+BenchmarkWriteMultiplePoints-16         	    3427	    342200 ns/op	   16792 B/op	     790 allocs/op
+BenchmarkWritePointWithManyFields
+BenchmarkWritePointWithManyFields-16    	   24070	     49488 ns/op	    8000 B/op	     390 allocs/op
+BenchmarkWritePointWithManyTags
+BenchmarkWritePointWithManyTags-16      	  128274	      9118 ns/op	    3712 B/op	      61 allocs/op
+PASS
+ok  	timeseriesdb/test	5.457s

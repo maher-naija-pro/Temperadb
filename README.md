@@ -325,12 +325,6 @@ go test -bench=BenchmarkParse ./test/
 
 ## License
 
-[Add your license information here]
+MIT 
 
-## Contributing
 
-[Add contribution guidelines here]
-
-## Support
-
-[Add support information here]

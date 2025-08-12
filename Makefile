@@ -97,6 +97,101 @@ benchmark-clean:
 	rm -f cpu_profile.prof memory_profile.prof block_profile.prof
 	@echo "Benchmark artifacts cleaned."
 
+# Performance Regression Detection targets
+.PHONY: regression-detect
+regression-detect:
+	@echo "Running performance regression detection..."
+	@echo "Make sure you have a baseline set first:"
+	@echo "  ./scripts/run-benchmarks.sh -b"
+	@echo ""
+	./scripts/detect-regressions.sh
+
+.PHONY: regression-detect-html
+regression-detect-html:
+	@echo "Running performance regression detection with HTML report..."
+	./scripts/detect-regressions.sh -H
+
+.PHONY: regression-detect-json
+regression-detect-json:
+	@echo "Running performance regression detection with JSON output..."
+	./scripts/detect-regressions.sh -j
+
+.PHONY: regression-detect-full
+regression-detect-full:
+	@echo "Running performance regression detection with all outputs..."
+	./scripts/detect-regressions.sh -H -j
+
+.PHONY: regression-baseline
+regression-baseline:
+	@echo "Setting current benchmark results as baseline..."
+	./scripts/run-benchmarks.sh -b
+
+.PHONY: regression-compare
+regression-compare:
+	@echo "Comparing current results with baseline..."
+	./scripts/run-benchmarks.sh -c
+
+# Performance Dashboard targets
+.PHONY: dashboard
+dashboard:
+	@echo "Generating performance dashboard..."
+	./scripts/performance-dashboard.sh -g
+
+.PHONY: dashboard-trends
+dashboard-trends:
+	@echo "Generating performance trends analysis..."
+	./scripts/performance-dashboard.sh -t
+
+.PHONY: dashboard-summary
+dashboard-summary:
+	@echo "Generating performance summary report..."
+	./scripts/performance-dashboard.sh -s
+
+.PHONY: dashboard-open
+dashboard-open:
+	@echo "Opening performance dashboard in browser..."
+	@if [ -f "performance-dashboard/index.html" ]; then \
+		xdg-open performance-dashboard/index.html 2>/dev/null || \
+		open performance-dashboard/index.html 2>/dev/null || \
+		echo "Please open performance-dashboard/index.html manually in your browser"; \
+	else \
+		echo "Dashboard not found. Generate it first with: make dashboard"; \
+	fi
+
+# Performance Monitoring Workflow
+.PHONY: performance-monitor
+performance-monitor:
+	@echo "========================================="
+	@echo "  TimeSeriesDB Performance Monitoring   "
+	@echo "========================================="
+	@echo ""
+	@echo "1. Running benchmarks..."
+	./scripts/run-benchmarks.sh -a
+	@echo ""
+	@echo "2. Detecting performance regressions..."
+	./scripts/detect-regressions.sh -H -j
+	@echo ""
+	@echo "3. Generating performance dashboard..."
+	./scripts/performance-dashboard.sh -g
+	@echo ""
+	@echo "========================================="
+	@echo "  Performance monitoring completed!     "
+	@echo "========================================="
+	@echo ""
+	@echo "Next steps:"
+	@echo "  - View regression reports: benchmark-results/regression_report_*.txt"
+	@echo "  - Open dashboard: make dashboard-open"
+	@echo "  - Set baseline: make regression-baseline"
+
+.PHONY: performance-clean
+performance-clean:
+	@echo "Cleaning performance monitoring artifacts..."
+	rm -rf performance-dashboard/
+	rm -f benchmark-results/regression_report_*.txt
+	rm -f benchmark-results/regression_report_*.html
+	rm -f benchmark-results/regression_report_*.json
+	@echo "Performance monitoring artifacts cleaned."
+
 .PHONY: benchmark-help
 benchmark-help:
 	@echo "Available benchmark targets:"
@@ -116,6 +211,33 @@ benchmark-help:
 	@echo "  go test -bench=BenchmarkParse -benchmem ./test/       # Parser only"
 	@echo "  go test -bench=BenchmarkWrite -benchmem ./test/       # Storage only"
 	@echo "  go test -bench=BenchmarkHTTP -benchmem ./test/        # HTTP only"
+
+.PHONY: performance-help
+performance-help:
+	@echo "Available performance monitoring targets:"
+	@echo ""
+	@echo "Performance Regression Detection:"
+	@echo "  regression-detect      - Detect performance regressions"
+	@echo "  regression-detect-html - Detect regressions with HTML report"
+	@echo "  regression-detect-json - Detect regressions with JSON output"
+	@echo "  regression-detect-full - Detect regressions with all outputs"
+	@echo "  regression-baseline    - Set current results as baseline"
+	@echo "  regression-compare     - Compare with baseline"
+	@echo ""
+	@echo "Performance Dashboard:"
+	@echo "  dashboard              - Generate performance dashboard"
+	@echo "  dashboard-trends       - Generate trends analysis"
+	@echo "  dashboard-summary      - Generate summary report"
+	@echo "  dashboard-open         - Open dashboard in browser"
+	@echo ""
+	@echo "Complete Workflow:"
+	@echo "  performance-monitor    - Run complete monitoring workflow"
+	@echo "  performance-clean      - Clean monitoring artifacts"
+	@echo "  performance-help       - Show this help message"
+	@echo ""
+	@echo "Quick workflow:"
+	@echo "  make performance-monitor  # Complete monitoring workflow"
+	@echo "  make dashboard-open       # View results"
 
 # Default target
 .DEFAULT_GOAL := test
