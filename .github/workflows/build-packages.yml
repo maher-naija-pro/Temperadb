@@ -18,6 +18,13 @@ env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
 
+# Grant necessary permissions for the workflow
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+  pull-requests: read
+
 jobs:
   # Build for multiple platforms
   build:
