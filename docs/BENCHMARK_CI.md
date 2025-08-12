@@ -25,13 +25,6 @@ The benchmark CI system consists of:
 
 Runs benchmarks across multiple Go versions (1.20, 1.21, 1.22) to ensure compatibility and performance consistency.
 
-**Steps:**
-- Setup Go environment
-- Download dependencies
-- Run comprehensive benchmarks using `make benchmark-all`
-- Generate CPU and memory profiles
-- Run individual benchmark categories
-- Upload artifacts (profiles, coverage data)
 
 #### 2. Benchmark Performance Job
 
