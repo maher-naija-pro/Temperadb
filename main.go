@@ -1,15 +1,12 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net/http"
-	"os"
+	"timeseriesdb/config"
+	aphttp "timeseriesdb/internal/api/http"
 	"timeseriesdb/internal/logger"
-	"timeseriesdb/internal/parser"
 	"timeseriesdb/internal/storage"
-
-	"github.com/joho/godotenv"
 )
 
 var (
@@ -17,77 +14,32 @@ var (
 )
 
 func main() {
-	// Load .env config
-	err := godotenv.Load()
+	// Load configuration
+	cfg, err := config.Load()
 	if err != nil {
-		log.Fatal("Error loading .env file")
+		log.Fatal("Error loading configuration:", err)
 	}
 
-	port := os.Getenv("PORT")
-	dataFile := os.Getenv("DATA_FILE")
-	if dataFile == "" {
-		dataFile = "data.tsv"
-	}
+	// Initialize logger with configuration
+	logger.InitWithConfig(cfg.Logging)
 
-	// Initialize logger
-	logger.Init()
-
-	// Initialize storage
-	storageInstance = storage.NewStorage(dataFile)
+	// Initialize storage with configuration
+	storageInstance = storage.NewStorage(cfg.Storage)
 	defer storageInstance.Close()
 
-	// HTTP handler for line protocol writes
-	http.HandleFunc("/write", handleWrite)
+	// Initialize API router
+	router := aphttp.NewRouter(storageInstance)
+	router.RegisterRoutes()
 
-	// Health check endpoint
-	http.HandleFunc("/health", handleHealth)
-
-	logger.Infof("Starting TimeSeriesDB on port %s...", port)
-	log.Fatal(http.ListenAndServe(":"+port, nil))
-}
-
-// Accepts InfluxDB line protocol via POST body
-func handleWrite(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", 405)
-		return
-	}
-	defer r.Body.Close()
-
-	// Handle negative or zero ContentLength
-	if r.ContentLength <= 0 {
-		http.Error(w, "Bad request", 400)
-		return
+	// Create HTTP server with configuration
+	server := &http.Server{
+		Addr:         ":" + cfg.Server.Port,
+		ReadTimeout:  cfg.Server.ReadTimeout,
+		WriteTimeout: cfg.Server.WriteTimeout,
+		IdleTimeout:  cfg.Server.IdleTimeout,
 	}
 
-	lines := make([]byte, r.ContentLength)
-	r.Body.Read(lines)
-
-	points, err := parser.ParseLineProtocol(string(lines))
-	if err != nil {
-		logger.Errorf("Failed to parse line protocol: %v", err)
-		http.Error(w, "Bad request", 400)
-		return
-	}
-
-	for _, p := range points {
-		err := storageInstance.WritePoint(p)
-		if err != nil {
-			logger.Errorf("Failed to write point: %v", err)
-		}
-	}
-
-	logger.Infof("Wrote %d points", len(points))
-	fmt.Fprint(w, "OK")
-}
-
-// Health check endpoint
-func handleHealth(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "Method not allowed", 405)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	fmt.Fprint(w, `{"status":"healthy","service":"TimeSeriesDB"}`)
+	logger.Infof("Starting TimeSeriesDB on port %s...", cfg.Server.Port)
+	logger.Infof("Configuration: %s", cfg.String())
+	log.Fatal(server.ListenAndServe())
 }

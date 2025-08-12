@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"timeseriesdb/config"
 	"timeseriesdb/internal/parser"
 	"timeseriesdb/internal/storage"
 	"timeseriesdb/internal/types"
@@ -185,7 +186,13 @@ func BenchmarkWriteSinglePoint(b *testing.B) {
 	testFile := "benchmark_storage_test.tsv"
 	defer os.Remove(testFile)
 
-	storageInstance := storage.NewStorage(testFile)
+	storageConfig := config.StorageConfig{
+		DataFile:    testFile,
+		MaxFileSize: 1073741824, // 1GB
+		BackupDir:   "backups",
+		Compression: false,
+	}
+	storageInstance := storage.NewStorage(storageConfig)
 	defer storageInstance.Close()
 
 	point := types.Point{
@@ -208,7 +215,13 @@ func BenchmarkWriteMultiplePoints(b *testing.B) {
 	testFile := "benchmark_storage_test.tsv"
 	defer os.Remove(testFile)
 
-	storageInstance := storage.NewStorage(testFile)
+	storageConfig := config.StorageConfig{
+		DataFile:    testFile,
+		MaxFileSize: 1073741824, // 1GB
+		BackupDir:   "backups",
+		Compression: false,
+	}
+	storageInstance := storage.NewStorage(storageConfig)
 	defer storageInstance.Close()
 
 	points := make([]types.Point, 100)
@@ -236,7 +249,13 @@ func BenchmarkWritePointWithManyFields(b *testing.B) {
 	testFile := "benchmark_storage_test.tsv"
 	defer os.Remove(testFile)
 
-	storageInstance := storage.NewStorage(testFile)
+	storageConfig := config.StorageConfig{
+		DataFile:    testFile,
+		MaxFileSize: 1073741824, // 1GB
+		BackupDir:   "backups",
+		Compression: false,
+	}
+	storageInstance := storage.NewStorage(storageConfig)
 	defer storageInstance.Close()
 
 	fields := make(map[string]float64, 50)
@@ -264,7 +283,13 @@ func BenchmarkWritePointWithManyTags(b *testing.B) {
 	testFile := "benchmark_storage_test.tsv"
 	defer os.Remove(testFile)
 
-	storageInstance := storage.NewStorage(testFile)
+	storageConfig := config.StorageConfig{
+		DataFile:    testFile,
+		MaxFileSize: 1073741824, // 1GB
+		BackupDir:   "backups",
+		Compression: false,
+	}
+	storageInstance := storage.NewStorage(storageConfig)
 	defer storageInstance.Close()
 
 	tags := make(map[string]string, 50)
@@ -296,7 +321,13 @@ func BenchmarkHTTPWriteSinglePoint(b *testing.B) {
 	testFile := "benchmark_http_test.tsv"
 	defer os.Remove(testFile)
 
-	storageInstance := storage.NewStorage(testFile)
+	storageConfig := config.StorageConfig{
+		DataFile:    testFile,
+		MaxFileSize: 1073741824, // 1GB
+		BackupDir:   "backups",
+		Compression: false,
+	}
+	storageInstance := storage.NewStorage(storageConfig)
 	defer storageInstance.Close()
 
 	// Parse the data first
@@ -321,7 +352,13 @@ func BenchmarkHTTPWriteMultiplePoints(b *testing.B) {
 	testFile := "benchmark_http_test.tsv"
 	defer os.Remove(testFile)
 
-	storageInstance := storage.NewStorage(testFile)
+	storageConfig := config.StorageConfig{
+		DataFile:    testFile,
+		MaxFileSize: 1073741824, // 1GB
+		BackupDir:   "backups",
+		Compression: false,
+	}
+	storageInstance := storage.NewStorage(storageConfig)
 	defer storageInstance.Close()
 
 	// Parse the data first
@@ -354,7 +391,13 @@ func BenchmarkHTTPWriteLargeDataset(b *testing.B) {
 	testFile := "benchmark_http_test.tsv"
 	defer os.Remove(testFile)
 
-	storageInstance := storage.NewStorage(testFile)
+	storageConfig := config.StorageConfig{
+		DataFile:    testFile,
+		MaxFileSize: 1073741824, // 1GB
+		BackupDir:   "backups",
+		Compression: false,
+	}
+	storageInstance := storage.NewStorage(storageConfig)
 	defer storageInstance.Close()
 
 	// Parse the data first
@@ -384,7 +427,13 @@ func BenchmarkEndToEndWrite(b *testing.B) {
 	testFile := "benchmark_e2e_test.tsv"
 	defer os.Remove(testFile)
 
-	storageInstance := storage.NewStorage(testFile)
+	storageConfig := config.StorageConfig{
+		DataFile:    testFile,
+		MaxFileSize: 1073741824, // 1GB
+		BackupDir:   "backups",
+		Compression: false,
+	}
+	storageInstance := storage.NewStorage(storageConfig)
 	defer storageInstance.Close()
 
 	// Parse data first
@@ -408,7 +457,13 @@ func BenchmarkConcurrentWrites(b *testing.B) {
 	testFile := "benchmark_concurrent_test.tsv"
 	defer os.Remove(testFile)
 
-	storageInstance := storage.NewStorage(testFile)
+	storageConfig := config.StorageConfig{
+		DataFile:    testFile,
+		MaxFileSize: 1073741824, // 1GB
+		BackupDir:   "backups",
+		Compression: false,
+	}
+	storageInstance := storage.NewStorage(storageConfig)
 	defer storageInstance.Close()
 
 	points := make([]types.Point, 1000)
@@ -450,7 +505,13 @@ func BenchmarkMemoryUsage(b *testing.B) {
 	testFile := "benchmark_memory_test.tsv"
 	defer os.Remove(testFile)
 
-	storageInstance := storage.NewStorage(testFile)
+	storageConfig := config.StorageConfig{
+		DataFile:    testFile,
+		MaxFileSize: 1073741824, // 1GB
+		BackupDir:   "backups",
+		Compression: false,
+	}
+	storageInstance := storage.NewStorage(storageConfig)
 	defer storageInstance.Close()
 
 	b.ResetTimer()
