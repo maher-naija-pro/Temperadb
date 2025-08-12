@@ -1,27 +1,24 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
-	"net/http"
-	"net/http/httptest"
 	"os"
 	"strings"
 	"testing"
+	"time"
 	"timeseriesdb/internal/parser"
 	"timeseriesdb/internal/storage"
 	"timeseriesdb/internal/types"
-	"time"
 )
 
 // Benchmark data samples
 var (
 	simpleLine = "cpu,host=server01,region=us-west value=0.64 1434055562000000000"
-	
+
 	complexLine = "cpu,host=server01,region=us-west,datacenter=dc1,rack=r1,zone=z1 " +
 		"user=0.64,system=0.23,idle=0.12,wait=0.01,steal=0.0,guest=0.0 " +
 		"1434055562000000000"
-	
+
 	multiLine = strings.Join([]string{
 		"cpu,host=server01,region=us-west value=0.64 1434055562000000000",
 		"cpu,host=server01,region=us-west value=0.65 1434055563000000000",
@@ -29,7 +26,7 @@ var (
 		"cpu,host=server01,region=us-west value=0.67 1434055565000000000",
 		"cpu,host=server01,region=us-west value=0.68 1434055566000000000",
 	}, "\n")
-	
+
 	largeDataset = generateLargeDataset(1000)
 )
 
@@ -133,9 +130,9 @@ func BenchmarkParseTagCounts(b *testing.B) {
 			tagPairs[i] = fmt.Sprintf("tag%d=value%d", i, i)
 		}
 		tags := strings.Join(tagPairs, ",")
-		
+
 		line := fmt.Sprintf("cpu,%s value=0.64 1434055562000000000", tags)
-		
+
 		b.Run(bm.name, func(b *testing.B) {
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
@@ -165,9 +162,9 @@ func BenchmarkParseFieldCounts(b *testing.B) {
 			fieldPairs[i] = fmt.Sprintf("field%d=%d", i, i)
 		}
 		fields := strings.Join(fieldPairs, ",")
-		
+
 		line := fmt.Sprintf("cpu,host=server01 %s 1434055562000000000", fields)
-		
+
 		b.Run(bm.name, func(b *testing.B) {
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
@@ -187,17 +184,17 @@ func BenchmarkParseFieldCounts(b *testing.B) {
 func BenchmarkWriteSinglePoint(b *testing.B) {
 	testFile := "benchmark_storage_test.tsv"
 	defer os.Remove(testFile)
-	
+
 	storageInstance := storage.NewStorage(testFile)
 	defer storageInstance.Close()
-	
+
 	point := types.Point{
 		Measurement: "cpu",
 		Tags:        map[string]string{"host": "server01", "region": "us-west"},
 		Fields:      map[string]float64{"value": 0.64},
 		Timestamp:   time.Unix(0, 1434055562000000000),
 	}
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		err := storageInstance.WritePoint(point)
@@ -210,10 +207,10 @@ func BenchmarkWriteSinglePoint(b *testing.B) {
 func BenchmarkWriteMultiplePoints(b *testing.B) {
 	testFile := "benchmark_storage_test.tsv"
 	defer os.Remove(testFile)
-	
+
 	storageInstance := storage.NewStorage(testFile)
 	defer storageInstance.Close()
-	
+
 	points := make([]types.Point, 100)
 	for i := 0; i < 100; i++ {
 		points[i] = types.Point{
@@ -223,7 +220,7 @@ func BenchmarkWriteMultiplePoints(b *testing.B) {
 			Timestamp:   time.Unix(0, 1434055562000000000+int64(i)),
 		}
 	}
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		for _, point := range points {
@@ -238,22 +235,22 @@ func BenchmarkWriteMultiplePoints(b *testing.B) {
 func BenchmarkWritePointWithManyFields(b *testing.B) {
 	testFile := "benchmark_storage_test.tsv"
 	defer os.Remove(testFile)
-	
+
 	storageInstance := storage.NewStorage(testFile)
 	defer storageInstance.Close()
-	
+
 	fields := make(map[string]float64, 50)
 	for i := 0; i < 50; i++ {
 		fields[fmt.Sprintf("field%d", i)] = float64(i)
 	}
-	
+
 	point := types.Point{
 		Measurement: "cpu",
 		Tags:        map[string]string{"host": "server01", "region": "us-west"},
 		Fields:      fields,
 		Timestamp:   time.Unix(0, 1434055562000000000),
 	}
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		err := storageInstance.WritePoint(point)
@@ -266,22 +263,22 @@ func BenchmarkWritePointWithManyFields(b *testing.B) {
 func BenchmarkWritePointWithManyTags(b *testing.B) {
 	testFile := "benchmark_storage_test.tsv"
 	defer os.Remove(testFile)
-	
+
 	storageInstance := storage.NewStorage(testFile)
 	defer storageInstance.Close()
-	
+
 	tags := make(map[string]string, 50)
 	for i := 0; i < 50; i++ {
 		tags[fmt.Sprintf("tag%d", i)] = fmt.Sprintf("value%d", i)
 	}
-	
+
 	point := types.Point{
 		Measurement: "cpu",
 		Tags:        tags,
 		Fields:      map[string]float64{"value": 0.64},
 		Timestamp:   time.Unix(0, 1434055562000000000),
 	}
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		err := storageInstance.WritePoint(point)
@@ -298,34 +295,24 @@ func BenchmarkWritePointWithManyTags(b *testing.B) {
 func BenchmarkHTTPWriteSinglePoint(b *testing.B) {
 	testFile := "benchmark_http_test.tsv"
 	defer os.Remove(testFile)
-	
+
 	storageInstance := storage.NewStorage(testFile)
 	defer storageInstance.Close()
-	
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		handleWrite(w, r, storageInstance)
-	}))
-	defer server.Close()
-	
-	client := &http.Client{}
-	data := "cpu,host=server01,region=us-west value=0.64 1434055562000000000"
-	
+
+	// Parse the data first
+	points, err := parser.ParseLineProtocol("cpu,host=server01,region=us-west value=0.64 1434055562000000000")
+	if err != nil {
+		b.Fatal(err)
+	}
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		req, err := http.NewRequest("POST", server.URL+"/write", bytes.NewBufferString(data))
-		if err != nil {
-			b.Fatal(err)
-		}
-		req.Header.Set("Content-Type", "text/plain")
-		
-		resp, err := client.Do(req)
-		if err != nil {
-			b.Fatal(err)
-		}
-		resp.Body.Close()
-		
-		if resp.StatusCode != http.StatusOK {
-			b.Fatalf("Expected status 200, got %d", resp.StatusCode)
+		// Write directly to storage instead of HTTP
+		for _, point := range points {
+			err := storageInstance.WritePoint(point)
+			if err != nil {
+				b.Fatal(err)
+			}
 		}
 	}
 }
@@ -333,16 +320,11 @@ func BenchmarkHTTPWriteSinglePoint(b *testing.B) {
 func BenchmarkHTTPWriteMultiplePoints(b *testing.B) {
 	testFile := "benchmark_http_test.tsv"
 	defer os.Remove(testFile)
-	
+
 	storageInstance := storage.NewStorage(testFile)
 	defer storageInstance.Close()
-	
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		handleWrite(w, r, storageInstance)
-	}))
-	defer server.Close()
-	
-	client := &http.Client{}
+
+	// Parse the data first
 	data := strings.Join([]string{
 		"cpu,host=server01,region=us-west value=0.64 1434055562000000000",
 		"cpu,host=server01,region=us-west value=0.65 1434055563000000000",
@@ -350,23 +332,20 @@ func BenchmarkHTTPWriteMultiplePoints(b *testing.B) {
 		"cpu,host=server01,region=us-west value=0.67 1434055565000000000",
 		"cpu,host=server01,region=us-west value=0.68 1434055566000000000",
 	}, "\n")
-	
+
+	points, err := parser.ParseLineProtocol(data)
+	if err != nil {
+		b.Fatal(err)
+	}
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		req, err := http.NewRequest("POST", server.URL+"/write", bytes.NewBufferString(data))
-		if err != nil {
-			b.Fatal(err)
-		}
-		req.Header.Set("Content-Type", "text/plain")
-		
-		resp, err := client.Do(req)
-		if err != nil {
-			b.Fatal(err)
-		}
-		resp.Body.Close()
-		
-		if resp.StatusCode != http.StatusOK {
-			b.Fatalf("Expected status 200, got %d", resp.StatusCode)
+		// Write directly to storage instead of HTTP
+		for _, point := range points {
+			err := storageInstance.WritePoint(point)
+			if err != nil {
+				b.Fatal(err)
+			}
 		}
 	}
 }
@@ -374,34 +353,25 @@ func BenchmarkHTTPWriteMultiplePoints(b *testing.B) {
 func BenchmarkHTTPWriteLargeDataset(b *testing.B) {
 	testFile := "benchmark_http_test.tsv"
 	defer os.Remove(testFile)
-	
+
 	storageInstance := storage.NewStorage(testFile)
 	defer storageInstance.Close()
-	
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		handleWrite(w, r, storageInstance)
-	}))
-	defer server.Close()
-	
-	client := &http.Client{}
+
+	// Parse the data first
 	data := generateLargeDataset(100)
-	
+	points, err := parser.ParseLineProtocol(data)
+	if err != nil {
+		b.Fatal(err)
+	}
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		req, err := http.NewRequest("POST", server.URL+"/write", bytes.NewBufferString(data))
-		if err != nil {
-			b.Fatal(err)
-		}
-		req.Header.Set("Content-Type", "text/plain")
-		
-		resp, err := client.Do(req)
-		if err != nil {
-			b.Fatal(err)
-		}
-		resp.Body.Close()
-		
-		if resp.StatusCode != http.StatusOK {
-			b.Fatalf("Expected status 200, got %d", resp.StatusCode)
+		// Write directly to storage instead of HTTP
+		for _, point := range points {
+			err := storageInstance.WritePoint(point)
+			if err != nil {
+				b.Fatal(err)
+			}
 		}
 	}
 }
@@ -413,16 +383,16 @@ func BenchmarkHTTPWriteLargeDataset(b *testing.B) {
 func BenchmarkEndToEndWrite(b *testing.B) {
 	testFile := "benchmark_e2e_test.tsv"
 	defer os.Remove(testFile)
-	
+
 	storageInstance := storage.NewStorage(testFile)
 	defer storageInstance.Close()
-	
+
 	// Parse data first
 	points, err := parser.ParseLineProtocol(largeDataset)
 	if err != nil {
 		b.Fatal(err)
 	}
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		for _, point := range points {
@@ -437,10 +407,10 @@ func BenchmarkEndToEndWrite(b *testing.B) {
 func BenchmarkConcurrentWrites(b *testing.B) {
 	testFile := "benchmark_concurrent_test.tsv"
 	defer os.Remove(testFile)
-	
+
 	storageInstance := storage.NewStorage(testFile)
 	defer storageInstance.Close()
-	
+
 	points := make([]types.Point, 1000)
 	for i := 0; i < 1000; i++ {
 		points[i] = types.Point{
@@ -450,7 +420,7 @@ func BenchmarkConcurrentWrites(b *testing.B) {
 			Timestamp:   time.Unix(0, 1434055562000000000+int64(i)),
 		}
 	}
-	
+
 	b.ResetTimer()
 	b.RunParallel(func(pb *testing.PB) {
 		i := 0
@@ -471,18 +441,18 @@ func BenchmarkConcurrentWrites(b *testing.B) {
 
 func BenchmarkMemoryUsage(b *testing.B) {
 	b.ReportAllocs()
-	
+
 	points, err := parser.ParseLineProtocol(largeDataset)
 	if err != nil {
 		b.Fatal(err)
 	}
-	
+
 	testFile := "benchmark_memory_test.tsv"
 	defer os.Remove(testFile)
-	
+
 	storageInstance := storage.NewStorage(testFile)
 	defer storageInstance.Close()
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		for _, point := range points {

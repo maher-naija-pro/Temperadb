@@ -5,6 +5,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 	"timeseriesdb/internal/logger"
 	"timeseriesdb/internal/types"
@@ -14,6 +15,7 @@ import (
 type Storage struct {
 	file   *os.File
 	writer *csv.Writer
+	mu     sync.Mutex
 }
 
 // NewStorage creates or opens a storage file
@@ -29,6 +31,9 @@ func NewStorage(path string) *Storage {
 
 // WritePoint writes a time-series point to file
 func (s *Storage) WritePoint(p types.Point) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	for k, v := range p.Fields {
 		row := []string{
 			p.Measurement,

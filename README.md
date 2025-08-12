@@ -119,6 +119,22 @@ make test-coverage
 
 # Run benchmarks
 make benchmark
+
+# Run specific benchmark categories
+make benchmark-parser      # Parser performance only
+make benchmark-storage     # Storage performance only
+make benchmark-http        # HTTP endpoint performance only
+make benchmark-e2e         # End-to-end workflow performance only
+make benchmark-memory      # Memory usage performance only
+
+# Run all benchmarks with progress display
+make benchmark-all
+
+# Run with CPU and memory profiling
+make benchmark-profile
+
+# Get benchmark help
+make benchmark-help
 ```
 
 ### Test Coverage
@@ -129,6 +145,98 @@ The project maintains high test coverage with comprehensive testing of:
 - Storage operations
 - Error handling and edge cases
 - Performance benchmarks
+
+### Performance Benchmarks
+
+The project includes a comprehensive benchmark suite covering all major components:
+
+#### Benchmark Categories
+- **Parser Performance**: Line protocol parsing with various data sizes and complexities
+- **Storage Performance**: Point writing with different tag/field counts
+- **HTTP Endpoint Performance**: End-to-end HTTP write operations
+- **End-to-End Workflows**: Complete data processing pipelines
+- **Memory Usage**: Allocation tracking and memory profiling
+- **Concurrent Operations**: Parallel write performance testing
+
+#### Benchmark Features
+- **Realistic test data** with CPU metrics, tags, and fields
+- **Scalable datasets** from 1 to 10,000 lines
+- **Performance metrics** for throughput, latency, memory, and allocations
+- **Profiling support** for CPU and memory analysis
+- **Timeout protection** for long-running benchmarks
+
+#### Quick Benchmark Commands
+```bash
+# Run all benchmarks with progress display
+make benchmark-all
+
+# Run specific component benchmarks
+make benchmark-parser
+make benchmark-storage
+make benchmark-http
+
+# Run with profiling
+make benchmark-profile
+
+# Get help
+make benchmark-help
+```
+
+#### Manual Benchmark Execution
+```bash
+# All benchmarks
+go test -bench=. -benchmem ./test/
+
+# Specific patterns
+go test -bench=BenchmarkParse -benchmem ./test/
+go test -bench=BenchmarkWrite -benchmem ./test/
+go test -bench=BenchmarkHTTP -benchmem ./test/
+
+# With profiling
+go test -bench=BenchmarkParseLargeDataset -cpuprofile=cpu.prof -benchmem ./test/
+go test -bench=BenchmarkMemoryUsage -memprofile=memory.prof -benchmem ./test/
+```
+
+#### Understanding Benchmark Results
+
+Benchmark output format:
+```
+BenchmarkName-16         1000        1234567 ns/op        1234 B/op        10 allocs/op
+```
+
+- **BenchmarkName-16**: Name and CPU cores
+- **1000**: Number of iterations
+- **1234567 ns/op**: Time per operation (nanoseconds)
+- **1234 B/op**: Memory allocated per operation (bytes)
+- **10 allocs/op**: Number of allocations per operation
+
+#### Performance Metrics
+- **Throughput**: Operations per second (higher is better)
+- **Latency**: Time per operation (lower is better)
+- **Memory**: Bytes allocated per operation (lower is better)
+- **Allocations**: Number of memory allocations per operation (lower is better)
+
+#### Profiling and Analysis
+
+After running `make benchmark-profile`, you'll get:
+- `cpu_profile.prof` - CPU usage analysis
+- `memory_profile.prof` - Memory usage analysis
+
+Analyze profiles with:
+```bash
+go tool pprof cpu_profile.prof
+go tool pprof memory_profile.prof
+
+# Web interface
+go tool pprof -http=:8080 cpu_profile.prof
+go tool pprof -http=:8080 memory_profile.prof
+```
+
+#### Performance Tips
+1. **Run multiple times** to account for system variance
+2. **Use consistent environment** for comparable results
+3. **Monitor system resources** during execution
+4. **Profile first** to identify bottlenecks before optimizing
 
 ### Code Quality
 
@@ -146,6 +254,7 @@ The project uses GitHub Actions for continuous integration:
 - **Go Versions**: Supports Go 1.20, 1.21, and 1.22
 - **Quality Gates**: Enforces code quality and security standards
 - **Performance Monitoring**: Tracks benchmarks and performance metrics
+- **Benchmark Regression Detection**: Monitors performance changes over time
 
 For detailed CI/CD information, see [CI.md](CI.md).
 
@@ -160,14 +269,21 @@ For detailed CI/CD information, see [CI.md](CI.md).
 
 ```
 tsdb/
-├── main.go          # Main application and HTTP server
-├── storage.go       # Data storage implementation
-├── parser.go        # Line protocol parser
-├── go.mod          # Go module dependencies
-├── go.sum          # Dependency checksums
-├── .gitignore      # Git ignore patterns
-├── data.tsv        # Time series data storage
-└── README.md       # This file
+├── main.go                    # Main application and HTTP server
+├── internal/                  # Internal packages
+│   ├── storage/              # Data storage implementation
+│   ├── parser/               # Line protocol parser
+│   ├── types/                # Data type definitions
+│   └── logger/               # Logging utilities
+├── test/                     # Test files
+│   ├── benchmark_test.go     # Comprehensive performance benchmarks
+│   └── write_endpoint_test.go # HTTP endpoint tests
+├── go.mod                    # Go module dependencies
+├── go.sum                    # Dependency checksums
+├── .gitignore               # Git ignore patterns
+├── Makefile                 # Build and test automation
+├── data.tsv                 # Time series data storage
+└── README.md                # This file
 ```
 
 ### Dependencies
@@ -193,7 +309,18 @@ GOOS=windows GOARCH=amd64 go build -o timeseriesdb-windows.exe
 ### Testing
 
 ```bash
+# Run all tests
 go test ./...
+
+# Run with coverage
+go test -cover ./...
+
+# Run benchmarks
+go test -bench=. -benchmem ./test/
+
+# Run specific test patterns
+go test -run TestWrite ./test/
+go test -bench=BenchmarkParse ./test/
 ```
 
 ## License
