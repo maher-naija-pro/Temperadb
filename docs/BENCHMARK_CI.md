@@ -56,7 +56,7 @@ The `scripts/run-benchmarks.sh` script provides a convenient way to run benchmar
 ./scripts/run-benchmarks.sh
 
 # Run specific benchmark categories
-./scripts/run-benchmarks.sh -p  # Parser only
+./scripts/run-benchmarks.sh -p  # Ingestion only
 ./scripts/run-benchmarks.sh -s  # Storage only
 ./scripts/run-benchmarks.sh -e  # HTTP endpoints only
 ./scripts/run-benchmarks.sh -t  # End-to-end workflows only
@@ -84,7 +84,7 @@ The Makefile provides convenient targets for running benchmarks:
 make benchmark
 
 # Run specific categories
-make benchmark-parser
+make benchmark-ingestion
 make benchmark-storage
 make benchmark-http
 make benchmark-e2e
@@ -122,7 +122,7 @@ go test -bench=. -benchmem -timeout=10m ./test/
 
 ## Benchmark Categories
 
-### 1. Parser Benchmarks
+### 1. Ingestion Benchmarks
 
 - **Simple Line Parsing**: Basic line protocol parsing
 - **Complex Line Parsing**: Lines with many tags and fields

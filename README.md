@@ -61,7 +61,7 @@ tsdb/
 ├── main.go                    # Main application and HTTP server
 ├── internal/                  # Internal packages
 │   ├── storage/              # Data storage implementation
-│   ├── parser/               # Line protocol parser
+│   ├── ingestion/            # Line protocol ingestion
 │   ├── types/                # Data type definitions
 │   └── logger/               # Logging utilities
 ├── test/                     # Test files and benchmarks

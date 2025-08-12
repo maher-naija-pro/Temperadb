@@ -3,8 +3,8 @@ package handlers
 import (
 	"fmt"
 	"net/http"
+	"timeseriesdb/internal/ingestion"
 	"timeseriesdb/internal/logger"
-	"timeseriesdb/internal/parser"
 	"timeseriesdb/internal/storage"
 )
 
@@ -44,7 +44,7 @@ func (h *WriteHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	points, err := parser.ParseLineProtocol(string(lines))
+	points, err := ingestion.ParseLineProtocol(string(lines))
 	if err != nil {
 		logger.Errorf("Failed to parse line protocol: %v", err)
 		h.WriteError(w, http.StatusBadRequest, "Bad request")

@@ -48,7 +48,7 @@ show_help() {
     echo "Options:"
     echo "  -h, --help              Show this help message"
     echo "  -a, --all               Run all benchmarks (default)"
-    echo "  -p, --parser            Run parser benchmarks only"
+    	echo "  -p, --ingestion         Run ingestion benchmarks only"
     echo "  -s, --storage           Run storage benchmarks only"
     echo "  -e, --http              Run HTTP endpoint benchmarks only"
     echo "  -t, --e2e               Run end-to-end benchmarks only"
@@ -61,7 +61,7 @@ show_help() {
     echo ""
     echo "Examples:"
     echo "  $0                      # Run all benchmarks"
-    echo "  $0 -p                   # Run parser benchmarks only"
+    	echo "  $0 -p                   # Run ingestion benchmarks only"
     echo "  $0 -c                   # Compare with baseline"
     echo "  $0 -b                   # Set current results as baseline"
     echo "  $0 -o my_results.txt    # Save to specific file"
@@ -81,7 +81,7 @@ run_benchmarks() {
         "all")
             go test -bench=. -benchmem -timeout="$timeout" -v "$BENCHMARK_DIR" | tee "$output_file"
             ;;
-        "parser")
+        	"ingestion")
             go test -bench=BenchmarkParse -benchmem -timeout="$timeout" -v "$BENCHMARK_DIR" | tee "$output_file"
             ;;
         "storage")
@@ -200,8 +200,8 @@ while [[ $# -gt 0 ]]; do
             BENCHMARK_TYPE="all"
             shift
             ;;
-        -p|--parser)
-            BENCHMARK_TYPE="parser"
+        	-p|--ingestion)
+		BENCHMARK_TYPE="ingestion"
             shift
             ;;
         -s|--storage)

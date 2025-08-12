@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 	"timeseriesdb/config"
-	"timeseriesdb/internal/parser"
+	"timeseriesdb/internal/ingestion"
 	"timeseriesdb/internal/storage"
 	"timeseriesdb/internal/types"
 )
@@ -51,7 +51,7 @@ func generateLargeDataset(size int) string {
 func BenchmarkParseSimpleLine(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, err := parser.ParseLineProtocol(simpleLine)
+		_, err := ingestion.ParseLineProtocol(simpleLine)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -61,7 +61,7 @@ func BenchmarkParseSimpleLine(b *testing.B) {
 func BenchmarkParseComplexLine(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, err := parser.ParseLineProtocol(complexLine)
+		_, err := ingestion.ParseLineProtocol(complexLine)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -71,7 +71,7 @@ func BenchmarkParseComplexLine(b *testing.B) {
 func BenchmarkParseMultiLine(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, err := parser.ParseLineProtocol(multiLine)
+		_, err := ingestion.ParseLineProtocol(multiLine)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -81,7 +81,7 @@ func BenchmarkParseMultiLine(b *testing.B) {
 func BenchmarkParseLargeDataset(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, err := parser.ParseLineProtocol(largeDataset)
+		_, err := ingestion.ParseLineProtocol(largeDataset)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -105,7 +105,7 @@ func BenchmarkParseLineCounts(b *testing.B) {
 		b.Run(bm.name, func(b *testing.B) {
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
-				_, err := parser.ParseLineProtocol(data)
+				_, err := ingestion.ParseLineProtocol(data)
 				if err != nil {
 					b.Fatal(err)
 				}
@@ -137,7 +137,7 @@ func BenchmarkParseTagCounts(b *testing.B) {
 		b.Run(bm.name, func(b *testing.B) {
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
-				_, err := parser.ParseLineProtocol(line)
+				_, err := ingestion.ParseLineProtocol(line)
 				if err != nil {
 					b.Fatal(err)
 				}
@@ -169,7 +169,7 @@ func BenchmarkParseFieldCounts(b *testing.B) {
 		b.Run(bm.name, func(b *testing.B) {
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
-				_, err := parser.ParseLineProtocol(line)
+				_, err := ingestion.ParseLineProtocol(line)
 				if err != nil {
 					b.Fatal(err)
 				}
@@ -331,7 +331,7 @@ func BenchmarkHTTPWriteSinglePoint(b *testing.B) {
 	defer storageInstance.Close()
 
 	// Parse the data first
-	points, err := parser.ParseLineProtocol("cpu,host=server01,region=us-west value=0.64 1434055562000000000")
+	points, err := ingestion.ParseLineProtocol("cpu,host=server01,region=us-west value=0.64 1434055562000000000")
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -370,7 +370,7 @@ func BenchmarkHTTPWriteMultiplePoints(b *testing.B) {
 		"cpu,host=server01,region=us-west value=0.68 1434055566000000000",
 	}, "\n")
 
-	points, err := parser.ParseLineProtocol(data)
+	points, err := ingestion.ParseLineProtocol(data)
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -402,7 +402,7 @@ func BenchmarkHTTPWriteLargeDataset(b *testing.B) {
 
 	// Parse the data first
 	data := generateLargeDataset(100)
-	points, err := parser.ParseLineProtocol(data)
+	points, err := ingestion.ParseLineProtocol(data)
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -437,7 +437,7 @@ func BenchmarkEndToEndWrite(b *testing.B) {
 	defer storageInstance.Close()
 
 	// Parse data first
-	points, err := parser.ParseLineProtocol(largeDataset)
+	points, err := ingestion.ParseLineProtocol(largeDataset)
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -497,7 +497,7 @@ func BenchmarkConcurrentWrites(b *testing.B) {
 func BenchmarkMemoryUsage(b *testing.B) {
 	b.ReportAllocs()
 
-	points, err := parser.ParseLineProtocol(largeDataset)
+	points, err := ingestion.ParseLineProtocol(largeDataset)
 	if err != nil {
 		b.Fatal(err)
 	}

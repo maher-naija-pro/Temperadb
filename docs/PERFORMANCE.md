@@ -42,7 +42,7 @@ ls benchmark-results/regression_report_*.txt
 **Makefile (Recommended):**
 ```bash
 make benchmark              # Run all benchmarks
-make benchmark-parser       # Parser performance
+make benchmark-ingestion    # Ingestion performance
 make benchmark-storage      # Storage performance  
 make benchmark-http         # HTTP endpoint performance
 make benchmark-e2e          # End-to-end workflows
@@ -54,7 +54,7 @@ make benchmark-clean        # Clean artifacts
 **Scripts:**
 ```bash
 ./scripts/run-benchmarks.sh           # All benchmarks
-./scripts/run-benchmarks.sh -p        # Parser only
+./scripts/run-benchmarks.sh -p        # Ingestion only
 ./scripts/run-benchmarks.sh -s        # Storage only
 ./scripts/run-benchmarks.sh -e        # HTTP endpoints only
 ./scripts/run-benchmarks.sh -t        # End-to-end workflows only
@@ -66,7 +66,7 @@ make benchmark-clean        # Clean artifacts
 **Direct Go Commands:**
 ```bash
 go test -bench=. -benchmem ./test/                    # All benchmarks
-go test -bench=BenchmarkParse -benchmem ./test/       # Parser tests
+go test -bench=BenchmarkParse -benchmem ./test/       # Ingestion tests
 go test -bench=BenchmarkWrite -benchmem ./test/       # Storage tests
 go test -bench=BenchmarkHTTP -benchmem ./test/        # HTTP tests
 go test -bench=. -benchmem -timeout=10m ./test/       # With timeout
@@ -74,7 +74,7 @@ go test -bench=. -benchmem -timeout=10m ./test/       # With timeout
 
 ### Benchmark Types
 
-**Parser Performance:**
+**Ingestion Performance:**
 - Simple/complex line parsing, multi-line parsing, large datasets (1000+ lines), scalability tests
 
 **Storage Performance:**
