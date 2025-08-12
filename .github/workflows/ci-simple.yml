@@ -21,13 +21,13 @@ jobs:
         
      
     - name: Run tests
-      run: go test -v 
-      working-directory: test
+      run: go test -v  ./...
+      working-directory: .
       
     - name: Run tests with coverage
       run: go test -v -coverprofile=coverage.out ./...
-      working-directory: test
+      working-directory: .
       
     - name: Show coverage
       run: go tool cover -func=coverage.out
-      working-directory: test
+      working-directory: .
