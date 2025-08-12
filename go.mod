@@ -2,7 +2,7 @@ module timeseriesdb
 
 go 1.23
 
-toolchain go1.24.6
+
 
 require (
 	github.com/joho/godotenv v1.6.0-pre.2
