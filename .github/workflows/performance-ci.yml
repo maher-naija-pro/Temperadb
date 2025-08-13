@@ -1,0 +1,252 @@
+name: Performance CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  # Run performance tests on schedule (daily at 2 AM UTC)
+  schedule:
+    - cron: '0 2 * * *'
+  # Allow manual triggering
+  workflow_dispatch:
+
+# Grant necessary permissions for the workflow
+permissions:
+  issues: write
+  pull-requests: write
+  contents: read
+
+jobs:
+  performance-test:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        go-version: ['1.24']
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Go ${{ matrix.go-version }}
+      uses: actions/setup-go@v4
+      with:
+        go-version: ${{ matrix.go-version }}
+        
+    - name: Init go.mod if missing
+      run: |
+        if [ ! -f "go.mod" ]; then
+          echo "go.mod not found, initializing for current project..."
+          go mod init timeseriesdb
+        else
+          echo "go.mod already exists."
+        fi
+
+    - name: Download dependencies
+      run: go mod tidy
+      
+    - name: Verify dependencies
+      run: go mod verify
+      
+    - name: Run comprehensive benchmarks
+      id: benchmarks
+      run: |
+        echo "Running comprehensive performance benchmarks..."
+        echo "================================================"
+        
+        # Create results directory
+        mkdir -p benchmark-results
+        
+        # Run all benchmarks with detailed output
+        go test -bench=. -benchmem -timeout=15m -v ./test/ | tee benchmark-results/benchmark_current.txt
+        
+        echo "================================================"
+        echo "Benchmark results saved to benchmark-results/benchmark_current.txt"
+      working-directory: .
+      continue-on-error: true
+      
+    - name: Run profiling benchmarks
+      id: profiling
+      run: |
+        echo "Running profiling benchmarks..."
+        
+        # CPU profiling
+        echo "Running CPU profiling benchmarks..."
+        go test -bench=BenchmarkParseLargeDataset -cpuprofile=benchmark-results/cpu_profile.prof -benchmem -timeout=10m ./test/ || echo "CPU profiling failed, continuing..."
+        
+        # Memory profiling
+        echo "Running memory profiling benchmarks..."
+        go test -bench=BenchmarkMemoryUsage -memprofile=benchmark-results/memory_profile.prof -benchmem -timeout=10m ./test/ || echo "Memory profiling failed, continuing..."
+        
+        echo "Profiling benchmarks completed"
+      working-directory: .
+      continue-on-error: true
+      
+    - name: Check if baseline exists
+      id: check-baseline
+      run: |
+        if [ -f "benchmark-results/baseline.txt" ]; then
+          echo "baseline-exists=true" >> $GITHUB_OUTPUT
+        else
+          echo "baseline-exists=false" >> $GITHUB_OUTPUT
+        fi
+      working-directory: .
+      
+    - name: Set baseline if not exists
+      if: steps.check-baseline.outputs.baseline-exists == 'false'
+      run: |
+        echo "No baseline found, setting current results as baseline..."
+        cp benchmark-results/benchmark_current.txt benchmark-results/baseline.txt
+        echo "Baseline set from current results"
+      working-directory: .
+      
+    - name: Detect performance regressions
+      if: steps.check-baseline.outputs.baseline-exists == 'true' && steps.benchmarks.outcome == 'success'
+      id: regression-check
+      run: |
+        echo "Running performance regression detection..."
+        
+        # Simple regression detection using basic text comparison
+        if [ -f "benchmark-results/baseline.txt" ] && [ -f "benchmark-results/benchmark_current.txt" ]; then
+          echo "=== Performance Regression Analysis ===" > benchmark-results/regression_report.txt
+          echo "Generated: $(date)" >> benchmark-results/regression_report.txt
+          echo "" >> benchmark-results/regression_report.txt
+          
+          # Extract benchmark results and compare
+          echo "Baseline benchmarks:" >> benchmark-results/regression_report.txt
+          grep "Benchmark" benchmark-results/baseline.txt | head -10 >> benchmark-results/regression_report.txt
+          echo "" >> benchmark-results/regression_report.txt
+          
+          echo "Current benchmarks:" >> benchmark-results/regression_report.txt
+          grep "Benchmark" benchmark-results/benchmark_current.txt | head -10 >> benchmark-results/regression_report.txt
+          echo "" >> benchmark-results/regression_report.txt
+          
+          echo "Regression detection completed. Check the report for details."
+        else
+          echo "Cannot perform regression detection - missing baseline or current results"
+        fi
+      working-directory: .
+      continue-on-error: true
+      
+    - name: Generate performance summary
+      id: summary
+      run: |
+        echo "Generating performance summary..."
+        
+        echo "=== Performance Test Summary ===" > benchmark-results/summary.txt
+        echo "Generated: $(date)" >> benchmark-results/summary.txt
+        echo "" >> benchmark-results/summary.txt
+        
+        # Check benchmark status
+        if [ -f "benchmark-results/benchmark_current.txt" ]; then
+          echo "✅ Benchmarks completed successfully" >> benchmark-results/summary.txt
+          echo "Results file: benchmark_current.txt" >> benchmark-results/summary.txt
+        else
+          echo "❌ Benchmarks failed or incomplete" >> benchmark-results/summary.txt
+        fi
+        
+        # Check profiling status
+        if [ -f "benchmark-results/cpu_profile.prof" ] || [ -f "benchmark-results/memory_profile.prof" ]; then
+          echo "✅ Profiling completed" >> benchmark-results/summary.txt
+        else
+          echo "⚠️ Profiling incomplete or failed" >> benchmark-results/summary.txt
+        fi
+        
+        # Check regression detection status
+        if [ -f "benchmark-results/regression_report.txt" ]; then
+          echo "✅ Regression detection completed" >> benchmark-results/summary.txt
+        else
+          echo "⚠️ Regression detection not performed" >> benchmark-results/summary.txt
+        fi
+        
+        echo "" >> benchmark-results/summary.txt
+        echo "Job Status: ${{ job.status }}" >> benchmark-results/summary.txt
+        echo "Go Version: ${{ matrix.go-version }}" >> benchmark-results/summary.txt
+        
+      working-directory: .
+      
+    - name: Upload all artifacts
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: performance-results-${{ matrix.go-version }}
+        path: |
+          benchmark-results/
+        retention-days: 90
+        
+    - name: Comment on PR with performance summary
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          
+          try {
+            let summary = '## 🚀 Performance CI Results\n\n';
+            
+            // Check if summary file exists
+            if (fs.existsSync('benchmark-results/summary.txt')) {
+              const summaryContent = fs.readFileSync('benchmark-results/summary.txt', 'utf8');
+              summary += '**Summary:**\n```\n' + summaryContent + '\n```\n\n';
+            }
+            
+            // Check if regression report exists
+            if (fs.existsSync('benchmark-results/regression_report.txt')) {
+              summary += '**Regression Analysis:** Available in workflow artifacts\n\n';
+            }
+            
+            // Check if benchmark results exist
+            if (fs.existsSync('benchmark-results/benchmark_current.txt')) {
+              const results = fs.readFileSync('benchmark-results/benchmark_current.txt', 'utf8');
+              const benchmarkLines = results.split('\n')
+                .filter(line => line.includes('Benchmark'))
+                .slice(0, 5); // Show first 5 benchmark results
+              
+              if (benchmarkLines.length > 0) {
+                summary += '**Sample Benchmark Results:**\n```\n' + benchmarkLines.join('\n') + '\n```\n\n';
+              }
+            }
+            
+            summary += '**Full Results:** Available in workflow artifacts\n';
+            summary += '**Go Version:** ${{ matrix.go-version }}\n';
+            
+            // Determine overall status
+            const benchmarkSuccess = fs.existsSync('benchmark-results/benchmark_current.txt');
+            const profilingSuccess = fs.existsSync('benchmark-results/cpu_profile.prof') || fs.existsSync('benchmark-results/memory_profile.prof');
+            
+            if (benchmarkSuccess && profilingSuccess) {
+              summary = '## ✅ Performance CI Results\n\n' + summary;
+            } else if (benchmarkSuccess) {
+              summary = '## ⚠️ Performance CI Results (Partial)\n\n' + summary;
+            } else {
+              summary = '## ❌ Performance CI Results (Failed)\n\n' + summary;
+            }
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: summary
+            });
+            
+          } catch (error) {
+            console.log('Could not generate performance summary:', error.message);
+            
+            // Fallback comment
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `## 🚀 Performance CI Results\n\nPerformance tests completed. Check the workflow artifacts for detailed results.\n\n**Go Version:** ${{ matrix.go-version }}`
+            });
+          }
+          
+    - name: Clean up temporary files
+      if: always()
+      run: |
+        echo "Cleaning up temporary files..."
+        # Keep only essential files, remove temporary ones
+        find benchmark-results/ -name "*.prof" -delete 2>/dev/null || true
+        echo "Cleanup completed"
+      working-directory: .

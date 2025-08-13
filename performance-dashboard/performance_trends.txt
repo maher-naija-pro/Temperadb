@@ -1,0 +1,9 @@
+=== Performance Trends Analysis ===
+Generated: Wed Aug 13 11:47:36 UTC 2025
+Analysis period: Last 30 days
+
+Regression reports found: 2
+
+Recent regression reports:
+  - regression_report_20250812_104715.txt (2025-08-12)
+  - regression_report_20250812_105000.txt (2025-08-12)

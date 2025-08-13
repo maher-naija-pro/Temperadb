@@ -1,0 +1,33 @@
+goos: linux
+goarch: amd64
+pkg: timeseriesdb/test/benchmark
+cpu: Intel Core Processor (Broadwell)
+BenchmarkHTTPWriteSinglePoint-16        	  263053	      4639 ns/op	     372 B/op	       9 allocs/op
+BenchmarkHTTPWriteMultiplePoints-16     	   45369	     22360 ns/op	    1860 B/op	      45 allocs/op
+BenchmarkHTTPWriteLargeDataset-16       	    1015	   1211282 ns/op	  273605 B/op	    7700 allocs/op
+BenchmarkEndToEndWrite-16               	   32635	     36406 ns/op	    8208 B/op	     231 allocs/op
+BenchmarkParseSimpleLine-16             	 1357521	       885.6 ns/op	     880 B/op	      12 allocs/op
+BenchmarkParseComplexLine-16            	  599584	      1803 ns/op	    1264 B/op	      20 allocs/op
+BenchmarkParseMultiLine-16              	  245059	      4452 ns/op	    4928 B/op	      55 allocs/op
+BenchmarkParseLargeDataset-16           	     584	   1850205 ns/op	 1323123 B/op	   18013 allocs/op
+BenchmarkParseLineCounts/1_line-16      	  620473	      1829 ns/op	    1264 B/op	      20 allocs/op
+BenchmarkParseLineCounts/10_lines-16    	   65532	     18162 ns/op	   13872 B/op	     186 allocs/op
+BenchmarkParseLineCounts/100_lines-16   	    6036	    178691 ns/op	  136402 B/op	    1809 allocs/op
+BenchmarkParseLineCounts/1000_lines-16  	     630	   1854905 ns/op	 1323125 B/op	   18013 allocs/op
+BenchmarkParseLineCounts/10000_lines-16 	      49	  20579943 ns/op	14658267 B/op	  180026 allocs/op
+BenchmarkParseTagCounts/2_tags-16       	 1333810	       901.8 ns/op	     880 B/op	      12 allocs/op
+BenchmarkParseTagCounts/5_tags-16       	  911530	      1174 ns/op	    1024 B/op	      15 allocs/op
+BenchmarkParseTagCounts/10_tags-16      	  547882	      2040 ns/op	    1880 B/op	      23 allocs/op
+BenchmarkParseTagCounts/20_tags-16      	  307326	      3708 ns/op	    3560 B/op	      35 allocs/op
+BenchmarkParseFieldCounts/1_field-16    	 1502720	       804.1 ns/op	     832 B/op	      11 allocs/op
+BenchmarkParseFieldCounts/5_fields-16   	  856098	      1322 ns/op	    1024 B/op	      15 allocs/op
+BenchmarkParseFieldCounts/10_fields-16  	  491142	      2312 ns/op	    1720 B/op	      23 allocs/op
+BenchmarkParseFieldCounts/20_fields-16  	  263430	      4432 ns/op	    3128 B/op	      35 allocs/op
+BenchmarkWriteSinglePoint-16            	  264921	      4439 ns/op	     372 B/op	       9 allocs/op
+BenchmarkWriteMultiplePoints-16         	    2640	    442056 ns/op	   37592 B/op	     890 allocs/op
+BenchmarkWritePointWithManyFields-16    	   22599	     49951 ns/op	    8208 B/op	     391 allocs/op
+BenchmarkWritePointWithManyTags-16      	  114920	     10820 ns/op	    3920 B/op	      62 allocs/op
+BenchmarkConcurrentWrites-16            	  225918	      5476 ns/op	     376 B/op	       8 allocs/op
+BenchmarkMemoryUsage-16                 	    2612	    442397 ns/op	   37592 B/op	     890 allocs/op
+PASS
+ok  	timeseriesdb/test/benchmark	36.184s
