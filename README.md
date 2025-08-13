@@ -31,11 +31,12 @@ go build -o timeseriesdb
 
 ### 2. Configure
 
-Create a `.env` file:
-```env
-PORT=8080
-DATA_FILE=data.tsv
-```
+
+
+**Minimum Requirements:**
+- Go 1.24 or higher
+- 512MB RAM
+- 1GB disk space for data storage
 
 ### 3. Run
 
@@ -95,30 +96,23 @@ For detailed information, see:
 - **[🧪 Testing Guide](docs/TESTS.md)** - Test architecture and guidelines
 - **[🚀 CI/CD Guide](docs/CI_CD.md)** - Automated workflows and deployment
 
-## Badges
-
-This project uses automated CI/CD to keep badges up-to-date:
-- **Build Status** - Shows the current build status
-- **Coverage** - Displays test coverage percentage
-- **Go Version** - Shows the Go version used
-- **License** - Links to the license file
-
-Badges are automatically updated on every push to main/master branch.
-
 ## Project Structure
 
 ```
 tsdb/
-├── main.go                    # Main application
+├── main.go                    # Main application entry point
+├── go.mod                     # Go module dependencies
+├── go.sum                     # Go module checksums
 ├── internal/                  # Core packages
-│   ├── storage/              # Data storage
+│   ├── storage/              # Data storage implementation
 │   ├── ingestion/            # Line protocol parsing
-│   ├── api/                  # HTTP handlers
-│   ├── metrics/              # Prometheus metrics
-│   └── config/               # Configuration
-├── test/                     # Tests and benchmarks
-├── docs/                     # Documentation
-└── scripts/                  # Utility scripts
+│   ├── api/                  # HTTP handlers and routing
+│   ├── metrics/              # Prometheus metrics collection
+│   └── config/               # Configuration management
+├── test/                     # Test files and benchmarks
+├── docs/                     # Documentation files
+├── scripts/                  # Utility and build scripts
+└── README.md                 # This file
 ```
 
 ## Building

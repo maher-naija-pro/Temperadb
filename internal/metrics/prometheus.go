@@ -169,6 +169,9 @@ var (
 
 // Init initializes the metrics system
 func Init() {
+	// Reset any existing metrics to avoid duplicate registration
+	Reset()
+
 	// Register all metrics with our custom registry
 	Registry.MustRegister(
 		IngestedPoints,

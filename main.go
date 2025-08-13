@@ -2,16 +2,8 @@ package main
 
 import (
 	"log"
-	"net/http"
-	aphttp "timeseriesdb/internal/api/http"
 	"timeseriesdb/internal/config"
-	"timeseriesdb/internal/logger"
-	"timeseriesdb/internal/metrics"
-	"timeseriesdb/internal/storage"
-)
-
-var (
-	storageInstance *storage.Storage
+	"timeseriesdb/internal/server"
 )
 
 func main() {
@@ -21,30 +13,13 @@ func main() {
 		log.Fatal("Error loading configuration:", err)
 	}
 
-	// Initialize logger with configuration
-	logger.InitWithConfig(cfg.Logging)
-
-	// Initialize metrics system
-	metrics.Init()
-
-	// Initialize storage with configuration
-	storageInstance = storage.NewStorage(cfg.Storage)
-	defer storageInstance.Close()
-
-	// Initialize API router
-	router := aphttp.NewRouter(storageInstance)
-	router.RegisterRoutes()
-
-	// Create HTTP server with configuration
-	server := &http.Server{
-		Addr:         ":" + cfg.Server.Port,
-		ReadTimeout:  cfg.Server.ReadTimeout,
-		WriteTimeout: cfg.Server.WriteTimeout,
-		IdleTimeout:  cfg.Server.IdleTimeout,
+	// Create and start server
+	srv, err := server.NewServer(cfg)
+	if err != nil {
+		log.Fatal("Error creating server:", err)
 	}
+	defer srv.Close()
 
-	logger.Infof("Starting TimeSeriesDB on port %s...", cfg.Server.Port)
-	logger.Infof("Configuration: %s", cfg.String())
-	logger.Infof("Metrics available at: http://localhost:%s/metrics", cfg.Server.Port)
-	log.Fatal(server.ListenAndServe())
+	// Start the server
+	log.Fatal(srv.Start())
 }
