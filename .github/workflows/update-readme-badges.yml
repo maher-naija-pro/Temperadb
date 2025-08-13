@@ -78,3 +78,28 @@ jobs:
           git commit -m "🤖 Update README badges [skip ci]"
           git push origin ${{ github.ref_name }}
         fi
+
+
+  # Discord notification job that runs on workflow failure
+  discord-notify:
+    runs-on: ubuntu-latest
+    if: failure()
+    needs: update-badges
+    
+    steps:
+    - name: Discord Notification - Update README Badges Failed
+      uses: Ilshidur/action-discord@master
+      env:
+        DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+      with:
+        args: |
+          🚨 **Update README Badges Workflow Failed**
+          
+          **Repository:** ${{ github.repository }}
+          **Branch:** ${{ github.ref_name }}
+          **Commit:** ${{ github.sha }}
+          **Actor:** ${{ github.actor }}
+          **Workflow:** ${{ github.workflow }}
+          **Run ID:** ${{ github.run_id }}
+          
+          [View Workflow Run](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
