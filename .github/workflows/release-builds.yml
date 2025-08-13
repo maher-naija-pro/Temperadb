@@ -17,8 +17,11 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
-  GOPROXY: https://proxy.golang.org,direct
+  # Go environment variables with fallback proxies for network resilience
+  GOPROXY: https://proxy.golang.org,https://goproxy.io,https://goproxy.cn,direct
   GOSUMDB: sum.golang.org
+  # Increase timeouts for network operations
+  GOFLAGS: -timeout=300s
 
 permissions:
   contents: write
@@ -64,15 +67,38 @@ jobs:
         go-version: '1.24.5'
         cache: true
 
-    - name: Verify Go module
+    - name: Verify Go module with retry
       run: |
         if [ ! -f go.mod ]; then
           echo "ERROR: go.mod not found"
           exit 1
         fi
         
-        go mod download
-        go mod verify
+        # Retry logic for network issues
+        for attempt in {1..3}; do
+          echo "Attempt $attempt: Verifying Go module..."
+          
+          if go mod download && go mod verify; then
+            echo "Go module verification successful"
+            break
+          else
+            echo "Attempt $attempt failed"
+            if [ $attempt -eq 3 ]; then
+              echo "All attempts failed. Trying with direct proxy..."
+              # Fallback to direct proxy
+              export GOPROXY=direct
+              if go mod download && go mod verify; then
+                echo "Go module verification successful with direct proxy"
+                break
+              else
+                echo "All verification attempts failed"
+                exit 1
+              fi
+            fi
+            echo "Waiting 10 seconds before retry..."
+            sleep 10
+          fi
+        done
 
     - name: Determine version
       id: version
@@ -93,9 +119,25 @@ jobs:
       run: |
         echo "Building for ${{ matrix.os }}/${{ matrix.arch }}..."
         
-        # Build binary
-        go build -ldflags="-s -w -X main.Version=${{ steps.version.outputs.VERSION }}" \
-                 -o "timeseriesdb-${{ matrix.os }}-${{ matrix.arch }}" .
+        # Build binary with retry logic
+        for attempt in {1..3}; do
+          echo "Build attempt $attempt for ${{ matrix.os }}/${{ matrix.arch }}..."
+          
+          if go build -ldflags="-s -w -X main.Version=${{ steps.version.outputs.VERSION }}" \
+                     -o "timeseriesdb-${{ matrix.os }}-${{ matrix.arch }}" .; then
+            echo "Build successful"
+            break
+          else
+            echo "Build attempt $attempt failed"
+            if [ $attempt -eq 3 ]; then
+              echo "All build attempts failed"
+              exit 1
+            fi
+            echo "Cleaning cache and retrying in 5 seconds..."
+            go clean -cache
+            sleep 5
+          fi
+        done
         
         # Verify binary was created
         if [ ! -f "timeseriesdb-${{ matrix.os }}-${{ matrix.arch }}" ]; then
