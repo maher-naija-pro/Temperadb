@@ -63,8 +63,7 @@ jobs:
           --head "$BRANCH_NAME" \
           --assignee "${{ github.actor }}" \
           --fill \
-          --draft=false
-        
+
         echo "✅ Pull request created successfully for $BRANCH_NAME"
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
