@@ -1,0 +1,53 @@
+name: Discord Notifications
+
+on:
+  workflow_call:
+    inputs:
+      workflow-name:
+        description: 'Name of the workflow that failed'
+        required: true
+        type: string
+      job-name:
+        description: 'Name of the job that failed'
+        required: false
+        type: string
+        default: 'Unknown'
+      additional-info:
+        description: 'Additional information about the failure'
+        required: false
+        type: string
+        default: ''
+      failure-reason:
+        description: 'Reason for the failure'
+        required: false
+        type: string
+        default: 'Unknown error'
+
+jobs:
+  notify-discord:
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+    - name: Discord Notification - Workflow Failed
+      uses: Ilshidur/action-discord@master
+      env:
+        DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+      with:
+        args: |
+          🚨 **${{ inputs.workflow-name }} Workflow Failed**
+          
+          **Repository:** ${{ github.repository }}
+          **Branch:** ${{ github.ref_name }}
+          **Commit:** ${{ github.sha }}
+          **Actor:** ${{ github.actor }}
+          **Workflow:** ${{ github.workflow }}
+          **Run ID:** ${{ github.run_id }}
+          **Failed Job:** ${{ inputs.job-name }}
+          **Failure Reason:** ${{ inputs.failure-reason }}
+          
+          ${{ inputs.additional-info }}
+          
+          [View Workflow Run](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+          
+          **Time:** ${{ github.event.head_commit.timestamp || 'N/A' }}

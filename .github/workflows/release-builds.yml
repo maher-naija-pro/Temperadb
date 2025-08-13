@@ -202,4 +202,29 @@ jobs:
         
         echo "Binary test completed successfully"
 
+  # Discord notification job that runs on workflow failure
+  discord-notify:
+    runs-on: ubuntu-latest
+    if: failure()
+    needs: [build, release, test-binaries]
+    
+    steps:
+    - name: Discord Notification - Release Builds Failed
+      uses: Ilshidur/action-discord@master
+      env:
+        DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+      with:
+        args: |
+          🚨 **Release Builds Workflow Failed**
+          
+          **Repository:** ${{ github.repository }}
+          **Branch:** ${{ github.ref_name }}
+          **Commit:** ${{ github.sha }}
+          **Actor:** ${{ github.actor }}
+          **Workflow:** ${{ github.workflow }}
+          **Run ID:** ${{ github.run_id }}
+          **Version:** ${{ needs.build.outputs.VERSION }}
+          
+          [View Workflow Run](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+
 

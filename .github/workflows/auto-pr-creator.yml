@@ -72,3 +72,27 @@ jobs:
       if: steps.check-pr.outputs.pr_exists == 'true'
       run: |
         echo "⏭️ PR already exists, skipping creation"
+
+  # Discord notification job that runs on workflow failure
+  discord-notify:
+    runs-on: ubuntu-latest
+    if: failure()
+    needs: create-pr
+    
+    steps:
+    - name: Discord Notification - Workflow Failed
+      uses: Ilshidur/action-discord@master
+      env:
+        DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+      with:
+        args: |
+          🚨 **Auto PR Creator Workflow Failed**
+          
+          **Repository:** ${{ github.repository }}
+          **Branch:** ${{ github.ref_name }}
+          **Commit:** ${{ github.sha }}
+          **Actor:** ${{ github.actor }}
+          **Workflow:** ${{ github.workflow }}
+          **Run ID:** ${{ github.run_id }}
+          
+          [View Workflow Run](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
