@@ -1,0 +1,32 @@
+=== Performance Regression Analysis ===
+Generated: Wed Aug 13 11:50:32 UTC 2025
+Baseline: benchmark-results/baseline.txt
+Current: benchmark-results/benchmark_current_20250813_114804.txt
+Threshold: 5.0%
+Critical threshold: 15.0%
+
+Benchmark Name                    | Baseline (ns/op) | Current (ns/op) | Change (%) | Status
+----------------------------------|------------------|-----------------|------------|---------
+BenchmarkParseTagCounts/10_tags-16  |            2035 |            2040 |      +0.00% | ✅
+BenchmarkParseFieldCounts/10_fields-16 |            2266 |            2312 |      +2.00% | ✅
+BenchmarkParseLineCounts/100_lines-16 |          182108 |          178691 |      -1.00% | ✅
+BenchmarkParseSimpleLine-16         |             896 |             886 |      -1.00% | ✅
+BenchmarkParseFieldCounts/5_fields-16 |            1276 |            1322 |      +3.00% | ✅
+BenchmarkParseLineCounts/1000_lines-16 |         1904568 |         1854905 |      -2.00% | ✅
+BenchmarkParseTagCounts/5_tags-16   |            1152 |            1174 |      +1.00% | ✅
+BenchmarkParseTagCounts/2_tags-16   |             892 |             902 |      +1.00% | ✅
+BenchmarkParseComplexLine-16        |            1802 |            1803 |      +0.00% | ✅
+BenchmarkParseFieldCounts/1_field-16 |             806 |             804 |      +0.00% | ✅
+BenchmarkParseMultiLine-16          |            4445 |            4452 |      +0.00% | ✅
+BenchmarkParseFieldCounts/20_fields-16 |            4215 |            4432 |      +5.00% | ✅
+BenchmarkParseLineCounts/10_lines-16 |           17881 |           18162 |      +1.00% | ✅
+BenchmarkParseLineCounts/10000_lines-16 |        20517162 |        20579943 |      +0.00% | ✅
+BenchmarkParseTagCounts/20_tags-16  |            3721 |            3708 |      +0.00% | ✅
+BenchmarkParseLineCounts/1_line-16  |            1815 |            1829 |      +0.00% | ✅
+BenchmarkParseLargeDataset-16       |         1798627 |         1850205 |      +2.00% | ✅
+
+=== Summary ===
+Total benchmarks analyzed: 27
+Performance regressions: 0
+Critical regressions: 0
+Performance improvements: 0

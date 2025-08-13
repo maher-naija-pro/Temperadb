@@ -1,0 +1,14 @@
+=== TimeSeriesDB Performance Summary ===
+Generated: Wed Aug 13 11:47:36 UTC 2025
+Analysis period: Last 30 days
+
+Total benchmark runs: 7
+
+Benchmark files found:
+  - benchmark_20250812_092234.txt (4.0K, 2025-08-12)
+  - benchmark_20250812_092823.txt (4.0K, 2025-08-12)
+  - benchmark_20250812_093019.txt (4.0K, 2025-08-12)
+  - benchmark_20250812_093700.txt (4.0K, 2025-08-12)
+  - benchmark_20250812_093725.txt (8.0K, 2025-08-12)
+  - benchmark_20250812_093850.txt (8.0K, 2025-08-12)
+  - benchmark_20250812_194811.txt (8.0K, 2025-08-12)
