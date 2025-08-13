@@ -1,5 +1,7 @@
 package config
 
+import "timeseriesdb/internal/envvars"
+
 // StorageConfig holds storage-related configuration
 type StorageConfig struct {
 	DataFile    string
@@ -10,10 +12,12 @@ type StorageConfig struct {
 
 // NewStorageConfig creates a new StorageConfig with default values
 func NewStorageConfig() StorageConfig {
+	parser := envvars.NewParser()
+
 	return StorageConfig{
-		DataFile:    getEnvWithDefault("DATA_FILE", defaults["DATA_FILE"]),
-		MaxFileSize: getInt64EnvWithDefault("MAX_FILE_SIZE", defaults["MAX_FILE_SIZE"]),
-		BackupDir:   getEnvWithDefault("BACKUP_DIR", defaults["BACKUP_DIR"]),
-		Compression: getBoolEnvWithDefault("COMPRESSION", defaults["COMPRESSION"]),
+		DataFile:    parser.String(envvars.DataFile, envvars.DefaultDataFile),
+		MaxFileSize: parser.FileSize(envvars.MaxFileSize, envvars.DefaultMaxFileSize),
+		BackupDir:   parser.String(envvars.BackupDir, envvars.DefaultBackupDir),
+		Compression: parser.Bool(envvars.Compression, envvars.DefaultCompression),
 	}
 }

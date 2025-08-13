@@ -1,6 +1,10 @@
 package config
 
-import "time"
+import (
+	"time"
+
+	"timeseriesdb/internal/envvars"
+)
 
 // ServerConfig holds server-related configuration
 type ServerConfig struct {
@@ -12,10 +16,12 @@ type ServerConfig struct {
 
 // NewServerConfig creates a new ServerConfig with default values
 func NewServerConfig() ServerConfig {
+	parser := envvars.NewParser()
+
 	return ServerConfig{
-		Port:         getEnvWithDefault("PORT", defaults["PORT"]),
-		ReadTimeout:  getDurationEnvWithDefault("READ_TIMEOUT", defaults["READ_TIMEOUT"]),
-		WriteTimeout: getDurationEnvWithDefault("WRITE_TIMEOUT", defaults["WRITE_TIMEOUT"]),
-		IdleTimeout:  getDurationEnvWithDefault("IDLE_TIMEOUT", defaults["IDLE_TIMEOUT"]),
+		Port:         parser.String(envvars.Port, envvars.DefaultPort),
+		ReadTimeout:  parser.Duration(envvars.ReadTimeout, envvars.DefaultReadTimeout),
+		WriteTimeout: parser.Duration(envvars.WriteTimeout, envvars.DefaultWriteTimeout),
+		IdleTimeout:  parser.Duration(envvars.IdleTimeout, envvars.DefaultIdleTimeout),
 	}
 }
