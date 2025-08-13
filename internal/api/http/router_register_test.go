@@ -6,6 +6,7 @@ import (
 	"os"
 	"testing"
 	"timeseriesdb/internal/config"
+	"timeseriesdb/internal/logger"
 	"timeseriesdb/internal/metrics"
 	"timeseriesdb/internal/storage"
 )
@@ -15,12 +16,16 @@ func TestRouter_RegisterRoutes(t *testing.T) {
 	metrics.Init()
 	defer metrics.Reset()
 
+	// Initialize logger for testing
+	logger.Init()
+
 	// Reset the default mux to avoid conflicts
 	http.DefaultServeMux = http.NewServeMux()
 
 	// Create a real storage instance for testing
 	storageConfig := config.StorageConfig{
 		DataFile:    "test_router_register_storage.tsv",
+		DataDir:     "test_data_register",
 		MaxFileSize: 1024,
 		BackupDir:   "test_backups_register",
 		Compression: false,
@@ -79,11 +84,15 @@ func TestRouter_RegisterRoutes_WriteEndpointPOST(t *testing.T) {
 	metrics.Init()
 	defer metrics.Reset()
 
+	// Initialize logger for testing
+	logger.Init()
+
 	// Reset the default mux to avoid conflicts
 	http.DefaultServeMux = http.NewServeMux()
 
 	// Create a real storage instance for testing
 	storageConfig := config.StorageConfig{
+		DataDir:     t.TempDir(),
 		DataFile:    "test_router_register_write_storage.tsv",
 		MaxFileSize: 1024,
 		BackupDir:   "test_backups_register_write",
@@ -128,6 +137,7 @@ func TestRouter_RegisterRoutes_HealthEndpointPOST(t *testing.T) {
 
 	// Create a real storage instance for testing
 	storageConfig := config.StorageConfig{
+		DataDir:     t.TempDir(),
 		DataFile:    "test_router_register_health_storage.tsv",
 		MaxFileSize: 1024,
 		BackupDir:   "test_backups_register_health",

@@ -16,6 +16,7 @@ func (h *ConfigHelpers) CreateTestConfig(t *testing.T) *config.Config {
 
 	return &config.Config{
 		Storage: config.StorageConfig{
+			DataDir:     tempDir,
 			DataFile:    filepath.Join(tempDir, "test_data.tsv"),
 			MaxFileSize: 1024 * 1024, // 1MB for tests
 			BackupDir:   filepath.Join(tempDir, "backups"),

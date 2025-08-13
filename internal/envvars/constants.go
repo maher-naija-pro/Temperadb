@@ -13,6 +13,7 @@ const (
 const (
 	// Storage Configuration
 	DataFile    = "DATA_FILE"
+	DataDir     = "DATA_DIR"
 	MaxFileSize = "MAX_FILE_SIZE"
 	BackupDir   = "BACKUP_DIR"
 	Compression = "COMPRESSION"

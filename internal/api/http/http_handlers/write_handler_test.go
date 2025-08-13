@@ -20,6 +20,7 @@ func TestWriteHandler_NewWriteHandler(t *testing.T) {
 
 	// Create a real storage instance for testing
 	storageConfig := config.StorageConfig{
+		DataDir:     t.TempDir(),
 		DataFile:    "test_write_handler_storage.tsv",
 		MaxFileSize: 1024,
 		BackupDir:   "test_backups",
@@ -51,6 +52,7 @@ func TestWriteHandler_Handle_ValidRequest(t *testing.T) {
 
 	// Create a real storage instance for testing
 	storageConfig := config.StorageConfig{
+		DataDir:     t.TempDir(),
 		DataFile:    "test_write_handler_valid.tsv",
 		MaxFileSize: 1024,
 		BackupDir:   "test_backups_valid",
@@ -91,6 +93,7 @@ func TestWriteHandler_Handle_InvalidMethod(t *testing.T) {
 
 	// Create a real storage instance for testing
 	storageConfig := config.StorageConfig{
+		DataDir:     t.TempDir(),
 		DataFile:    "test_write_handler_method.tsv",
 		MaxFileSize: 1024,
 		BackupDir:   "test_backups_method",
@@ -137,6 +140,7 @@ func TestWriteHandler_Handle_ZeroContentLength(t *testing.T) {
 
 	// Create a real storage instance for testing
 	storageConfig := config.StorageConfig{
+		DataDir:     t.TempDir(),
 		DataFile:    "test_write_handler_zero.tsv",
 		MaxFileSize: 1024,
 		BackupDir:   "test_backups_zero",
@@ -171,6 +175,7 @@ func TestWriteHandler_Handle_NegativeContentLength(t *testing.T) {
 
 	// Create a real storage instance for testing
 	storageConfig := config.StorageConfig{
+		DataDir:     t.TempDir(),
 		DataFile:    "test_write_handler_negative.tsv",
 		MaxFileSize: 1024,
 		BackupDir:   "test_backups_negative",
@@ -205,6 +210,7 @@ func TestWriteHandler_Handle_RequestBodyReadError(t *testing.T) {
 
 	// Create a real storage instance for testing
 	storageConfig := config.StorageConfig{
+		DataDir:     t.TempDir(),
 		DataFile:    "test_write_handler_read_error.tsv",
 		MaxFileSize: 1024,
 		BackupDir:   "test_backups_read_error",
@@ -240,6 +246,7 @@ func TestWriteHandler_Handle_InvalidLineProtocol(t *testing.T) {
 
 	// Create a real storage instance for testing
 	storageConfig := config.StorageConfig{
+		DataDir:     t.TempDir(),
 		DataFile:    "test_write_handler_invalid.tsv",
 		MaxFileSize: 1024,
 		BackupDir:   "test_backups_invalid",
@@ -276,6 +283,7 @@ func TestWriteHandler_Handle_MalformedLineProtocol(t *testing.T) {
 
 	// Create a real storage instance for testing
 	storageConfig := config.StorageConfig{
+		DataDir:     t.TempDir(),
 		DataFile:    "test_write_handler_malformed.tsv",
 		MaxFileSize: 1024,
 		BackupDir:   "test_backups_malformed",
@@ -312,6 +320,7 @@ func TestWriteHandler_Handle_EmptyLineProtocol(t *testing.T) {
 
 	// Create a real storage instance for testing
 	storageConfig := config.StorageConfig{
+		DataDir:     t.TempDir(),
 		DataFile:    "test_write_handler_empty.tsv",
 		MaxFileSize: 1024,
 		BackupDir:   "test_backups_empty",
@@ -348,6 +357,7 @@ func TestWriteHandler_Handle_MultipleLines(t *testing.T) {
 
 	// Create a real storage instance for testing
 	storageConfig := config.StorageConfig{
+		DataDir:     t.TempDir(),
 		DataFile:    "test_write_handler_multiple.tsv",
 		MaxFileSize: 1024,
 		BackupDir:   "test_backups_multiple",
@@ -389,6 +399,7 @@ func TestWriteHandler_Handle_ComplexTags(t *testing.T) {
 
 	// Create a real storage instance for testing
 	storageConfig := config.StorageConfig{
+		DataDir:     t.TempDir(),
 		DataFile:    "test_write_handler_complex_tags.tsv",
 		MaxFileSize: 1024,
 		BackupDir:   "test_backups_complex_tags",
@@ -425,6 +436,7 @@ func TestWriteHandler_Handle_MultipleFields(t *testing.T) {
 
 	// Create a real storage instance for testing
 	storageConfig := config.StorageConfig{
+		DataDir:     t.TempDir(),
 		DataFile:    "test_write_handler_multiple_fields.tsv",
 		MaxFileSize: 1024,
 		BackupDir:   "test_backups_multiple_fields",
@@ -461,6 +473,7 @@ func TestWriteHandler_Handle_StorageError(t *testing.T) {
 
 	// Create a real storage instance for testing
 	storageConfig := config.StorageConfig{
+		DataDir:     t.TempDir(),
 		DataFile:    "test_write_handler_storage_error.tsv",
 		MaxFileSize: 1024,
 		BackupDir:   "test_backups_storage_error",
@@ -497,6 +510,7 @@ func TestWriteHandler_Handle_StorageWriteError(t *testing.T) {
 
 	// Create a real storage instance for testing
 	storageConfig := config.StorageConfig{
+		DataDir:     t.TempDir(),
 		DataFile:    "test_write_handler_storage_write_error.tsv",
 		MaxFileSize: 1024,
 		BackupDir:   "test_backups_storage_write_error",
@@ -539,6 +553,7 @@ func TestWriteHandler_Handle_ConcurrentRequests(t *testing.T) {
 
 	// Create a real storage instance for testing
 	storageConfig := config.StorageConfig{
+		DataDir:     t.TempDir(),
 		DataFile:    "test_write_handler_concurrent.tsv",
 		MaxFileSize: 1024,
 		BackupDir:   "test_backups_concurrent",
@@ -594,6 +609,7 @@ func TestWriteHandler_Handle_ResponseConsistency(t *testing.T) {
 
 	// Create a real storage instance for testing
 	storageConfig := config.StorageConfig{
+		DataDir:     t.TempDir(),
 		DataFile:    "test_write_handler_consistency.tsv",
 		MaxFileSize: 1024,
 		BackupDir:   "test_backups_consistency",
@@ -636,6 +652,7 @@ func TestWriteHandler_Handle_EdgeCases(t *testing.T) {
 
 	// Create a real storage instance for testing
 	storageConfig := config.StorageConfig{
+		DataDir:     t.TempDir(),
 		DataFile:    "test_write_handler_edge_cases.tsv",
 		MaxFileSize: 1024,
 		BackupDir:   "test_backups_edge_cases",
@@ -705,6 +722,7 @@ func TestWriteHandler_Handle_WithQueryParameters(t *testing.T) {
 
 	// Create a real storage instance for testing
 	storageConfig := config.StorageConfig{
+		DataDir:     t.TempDir(),
 		DataFile:    "test_write_handler_query_params.tsv",
 		MaxFileSize: 1024,
 		BackupDir:   "test_backups_query_params",
@@ -741,6 +759,7 @@ func TestWriteHandler_Handle_WithHeaders(t *testing.T) {
 
 	// Create a real storage instance for testing
 	storageConfig := config.StorageConfig{
+		DataDir:     t.TempDir(),
 		DataFile:    "test_write_handler_headers.tsv",
 		MaxFileSize: 1024,
 		BackupDir:   "test_backups_headers",
@@ -782,6 +801,7 @@ func TestWriteHandler_Handle_WithBody(t *testing.T) {
 
 	// Create a real storage instance for testing
 	storageConfig := config.StorageConfig{
+		DataDir:     t.TempDir(),
 		DataFile:    "test_write_handler_body.tsv",
 		MaxFileSize: 1024,
 		BackupDir:   "test_backups_body",
@@ -822,6 +842,7 @@ func TestWriteHandler_Handle_EmptyPath(t *testing.T) {
 
 	// Create a real storage instance for testing
 	storageConfig := config.StorageConfig{
+		DataDir:     t.TempDir(),
 		DataFile:    "test_write_handler_empty_path.tsv",
 		MaxFileSize: 1024,
 		BackupDir:   "test_backups_empty_path",
@@ -865,6 +886,7 @@ func TestWriteHandler_Integration_WithRealStorage(t *testing.T) {
 
 	// Create a real storage instance for testing
 	storageConfig := config.StorageConfig{
+		DataDir:     t.TempDir(),
 		DataFile:    "test_write_handler_integration.tsv",
 		MaxFileSize: 1024,
 		BackupDir:   "test_backups_integration",
@@ -914,6 +936,7 @@ func TestWriteHandler_Handle_WithLogger(t *testing.T) {
 
 	// Create a real storage instance for testing
 	storageConfig := config.StorageConfig{
+		DataDir:     t.TempDir(),
 		DataFile:    "test_write_handler_logger.tsv",
 		MaxFileSize: 1024,
 		BackupDir:   "test_backups_logger",
@@ -950,6 +973,7 @@ func TestWriteHandler_Handle_EdgeCase_WhitespaceOnly(t *testing.T) {
 
 	// Create a real storage instance for testing
 	storageConfig := config.StorageConfig{
+		DataDir:     t.TempDir(),
 		DataFile:    "test_write_handler_whitespace.tsv",
 		MaxFileSize: 1024,
 		BackupDir:   "test_backups_whitespace",
@@ -990,6 +1014,7 @@ func TestWriteHandler_Handle_EdgeCase_SingleNewline(t *testing.T) {
 
 	// Create a real storage instance for testing
 	storageConfig := config.StorageConfig{
+		DataDir:     t.TempDir(),
 		DataFile:    "test_write_handler_single_newline.tsv",
 		MaxFileSize: 1024,
 		BackupDir:   "test_backups_single_newline",

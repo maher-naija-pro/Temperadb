@@ -24,6 +24,7 @@ func NewTestSuite(t *testing.T) *TestSuite {
 
 	cfg := &config.Config{
 		Storage: config.StorageConfig{
+			DataDir:     tempDir,
 			DataFile:    tempDir + "/test_data.tsv",
 			MaxFileSize: 1073741824, // 1GB
 			BackupDir:   tempDir + "/backups",

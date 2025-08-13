@@ -11,9 +11,10 @@ var (
 	DefaultIdleTimeout  = 120 * time.Second
 
 	// Storage Configuration Defaults
-	DefaultDataFile    = "data.tsv"
+	DefaultDataFile    = "/tmp/data.tsv"
+	DefaultDataDir     = "/tmp"
 	DefaultMaxFileSize = int64(1073741824) // 1GB
-	DefaultBackupDir   = "backups"
+	DefaultBackupDir   = "/tmp/backups"
 	DefaultCompression = false
 
 	// Logging Configuration Defaults
