@@ -5,7 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -79,38 +78,6 @@ func TestConfigLoad(t *testing.T) {
 		// The Level field still contains the invalid value, but GetLogLevel() should return info
 		assert.Equal(t, "invalid_level", cfg.Logging.Level)
 		assert.Equal(t, "info", cfg.Logging.GetLogLevel().String())
-	})
-}
-
-func TestLoggingConfig(t *testing.T) {
-	t.Run("GetLogLevel with valid level", func(t *testing.T) {
-		cfg := LoggingConfig{Level: "debug"}
-		level := cfg.GetLogLevel()
-		assert.Equal(t, "debug", level.String())
-	})
-
-	t.Run("GetLogLevel with invalid level", func(t *testing.T) {
-		cfg := LoggingConfig{Level: "invalid"}
-		level := cfg.GetLogLevel()
-		assert.Equal(t, "info", level.String()) // Should default to info
-	})
-
-	t.Run("GetLogFormat with json", func(t *testing.T) {
-		cfg := LoggingConfig{Format: "json"}
-		formatter := cfg.GetLogFormat()
-		assert.IsType(t, &logrus.JSONFormatter{}, formatter)
-	})
-
-	t.Run("GetLogFormat with text", func(t *testing.T) {
-		cfg := LoggingConfig{Format: "text"}
-		formatter := cfg.GetLogFormat()
-		assert.IsType(t, &logrus.TextFormatter{}, formatter)
-	})
-
-	t.Run("GetLogFormat with invalid", func(t *testing.T) {
-		cfg := LoggingConfig{Format: "invalid"}
-		formatter := cfg.GetLogFormat()
-		assert.IsType(t, &logrus.TextFormatter{}, formatter) // Should default to text
 	})
 }
 

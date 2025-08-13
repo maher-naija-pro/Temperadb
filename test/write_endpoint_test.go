@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 	"time"
-	"timeseriesdb/config"
+	"timeseriesdb/internal/config"
 	"timeseriesdb/internal/storage"
 	"timeseriesdb/internal/types"
 

@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 	"time"
-	"timeseriesdb/config"
+	"timeseriesdb/internal/config"
 	"timeseriesdb/internal/ingestion"
 	"timeseriesdb/internal/storage"
 	"timeseriesdb/internal/types"

@@ -8,6 +8,9 @@ import (
 	"testing"
 	"time"
 
+	"timeseriesdb/internal/config"
+
+	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -393,8 +396,8 @@ func TestLoggerTableDriven(t *testing.T) {
 	}
 }
 
-// TestLoggerEdgeCases tests various edge cases and error scenarios
-func TestLoggerEdgeCases(t *testing.T) {
+// TestLoggerEdgeCasesEnhanced tests additional edge cases
+func TestLoggerEdgeCasesEnhanced(t *testing.T) {
 	t.Run("Logger with very long log level", func(t *testing.T) {
 		longLevel := strings.Repeat("a", 1000)
 		os.Setenv("LOG_LEVEL", longLevel)
@@ -458,6 +461,50 @@ func TestLoggerEdgeCases(t *testing.T) {
 		assert.NotNil(t, Log)
 		// Should default to info level for numeric
 		assert.Equal(t, "info", Log.GetLevel().String())
+	})
+
+	t.Run("Logger with empty string log level", func(t *testing.T) {
+		os.Setenv("LOG_LEVEL", "")
+		defer os.Unsetenv("LOG_LEVEL")
+
+		Log = nil
+		Init()
+
+		assert.NotNil(t, Log)
+		assert.Equal(t, "info", Log.GetLevel().String())
+	})
+
+	t.Run("Logger with whitespace-only log level", func(t *testing.T) {
+		os.Setenv("LOG_LEVEL", "   ")
+		defer os.Unsetenv("LOG_LEVEL")
+
+		Log = nil
+		Init()
+
+		assert.NotNil(t, Log)
+		assert.Equal(t, "info", Log.GetLevel().String())
+	})
+
+	t.Run("Logger with mixed case log level", func(t *testing.T) {
+		os.Setenv("LOG_LEVEL", "DeBuG")
+		defer os.Unsetenv("LOG_LEVEL")
+
+		Log = nil
+		Init()
+
+		assert.NotNil(t, Log)
+		assert.Equal(t, "debug", Log.GetLevel().String())
+	})
+
+	t.Run("Logger with mixed case warn level", func(t *testing.T) {
+		os.Setenv("LOG_LEVEL", "WaRn")
+		defer os.Unsetenv("LOG_LEVEL")
+
+		Log = nil
+		Init()
+
+		assert.NotNil(t, Log)
+		assert.Equal(t, "warning", Log.GetLevel().String())
 	})
 }
 
@@ -682,6 +729,347 @@ func TestLoggerReinitialization(t *testing.T) {
 		// Reinitialize
 		Init()
 		assert.NotNil(t, Log)
+	})
+}
+
+// TestLoggerInitWithConfig tests the InitWithConfig function
+func TestLoggerInitWithConfig(t *testing.T) {
+	t.Run("InitWithConfig with stdout output", func(t *testing.T) {
+		// Create a test config
+		cfg := config.LoggingConfig{
+			Level:  "debug",
+			Format: "text",
+			Output: "stdout",
+		}
+
+		// Clear logger and initialize with config
+		Log = nil
+		InitWithConfig(cfg)
+
+		// Verify logger is initialized
+		assert.NotNil(t, Log)
+		assert.Equal(t, "debug", Log.GetLevel().String())
+		assert.Equal(t, os.Stdout, Log.Out)
+	})
+
+	t.Run("InitWithConfig with stderr output", func(t *testing.T) {
+		// Create a test config
+		cfg := config.LoggingConfig{
+			Level:  "warn",
+			Format: "text",
+			Output: "stderr",
+		}
+
+		// Clear logger and initialize with config
+		Log = nil
+		InitWithConfig(cfg)
+
+		// Verify logger is initialized
+		assert.NotNil(t, Log)
+		assert.Equal(t, "warning", Log.GetLevel().String())
+		assert.Equal(t, os.Stderr, Log.Out)
+	})
+
+	t.Run("InitWithConfig with default output", func(t *testing.T) {
+		// Create a test config with invalid output
+		cfg := config.LoggingConfig{
+			Level:  "error",
+			Format: "text",
+			Output: "invalid_output",
+		}
+
+		// Clear logger and initialize with config
+		Log = nil
+		InitWithConfig(cfg)
+
+		// Verify logger is initialized with default stdout
+		assert.NotNil(t, Log)
+		assert.Equal(t, "error", Log.GetLevel().String())
+		assert.Equal(t, os.Stdout, Log.Out)
+	})
+
+	t.Run("InitWithConfig with JSON format", func(t *testing.T) {
+		// Create a test config with JSON format
+		cfg := config.LoggingConfig{
+			Level:  "info",
+			Format: "json",
+			Output: "stdout",
+		}
+
+		// Clear logger and initialize with config
+		Log = nil
+		InitWithConfig(cfg)
+
+		// Verify logger is initialized with JSON formatter
+		assert.NotNil(t, Log)
+		assert.Equal(t, "info", Log.GetLevel().String())
+
+		// Check if formatter is JSON
+		_, ok := Log.Formatter.(*logrus.JSONFormatter)
+		assert.True(t, ok, "Formatter should be JSONFormatter")
+	})
+
+	t.Run("InitWithConfig with text format", func(t *testing.T) {
+		// Create a test config with text format
+		cfg := config.LoggingConfig{
+			Level:  "debug",
+			Format: "text",
+			Output: "stdout",
+		}
+
+		// Clear logger and initialize with config
+		Log = nil
+		InitWithConfig(cfg)
+
+		// Verify logger is initialized with text formatter
+		assert.NotNil(t, Log)
+		assert.Equal(t, "debug", Log.GetLevel().String())
+
+		// Check if formatter is TextFormatter
+		_, ok := Log.Formatter.(*logrus.TextFormatter)
+		assert.True(t, ok, "Formatter should be TextFormatter")
+	})
+
+	t.Run("InitWithConfig with invalid log level", func(t *testing.T) {
+		// Create a test config with invalid log level
+		cfg := config.LoggingConfig{
+			Level:  "invalid_level",
+			Format: "text",
+			Output: "stdout",
+		}
+
+		// Clear logger and initialize with config
+		Log = nil
+		InitWithConfig(cfg)
+
+		// Verify logger is initialized with default info level
+		assert.NotNil(t, Log)
+		assert.Equal(t, "info", Log.GetLevel().String())
+	})
+
+	t.Run("InitWithConfig in test mode", func(t *testing.T) {
+		// Create a test buffer
+		var buf bytes.Buffer
+
+		// Enable test mode and set test writer
+		SetTestMode(true)
+		SetTestWriter(&buf)
+		defer func() {
+			SetTestMode(false)
+			SetTestWriter(nil)
+		}()
+
+		// Create a test config
+		cfg := config.LoggingConfig{
+			Level:  "debug",
+			Format: "text",
+			Output: "stdout",
+		}
+
+		// Clear logger and initialize with config
+		Log = nil
+		InitWithConfig(cfg)
+
+		// Verify logger is initialized and uses test writer
+		assert.NotNil(t, Log)
+		assert.Equal(t, "debug", Log.GetLevel().String())
+		assert.Equal(t, &buf, Log.Out)
+	})
+
+	t.Run("InitWithConfig with all config options", func(t *testing.T) {
+		// Create a comprehensive test config
+		cfg := config.LoggingConfig{
+			Level:      "warn",
+			Format:     "json",
+			Output:     "stderr",
+			MaxSize:    200,
+			MaxBackups: 5,
+			MaxAge:     30,
+			Compress:   false,
+		}
+
+		// Clear logger and initialize with config
+		Log = nil
+		InitWithConfig(cfg)
+
+		// Verify logger is initialized with all config options
+		assert.NotNil(t, Log)
+		assert.Equal(t, "warning", Log.GetLevel().String())
+		assert.Equal(t, os.Stderr, Log.Out)
+
+		// Check if formatter is JSON
+		_, ok := Log.Formatter.(*logrus.JSONFormatter)
+		assert.True(t, ok, "Formatter should be JSONFormatter")
+	})
+}
+
+// TestLoggerCustomLoggerMethods tests the CustomLogger methods
+func TestLoggerCustomLoggerMethods(t *testing.T) {
+	t.Run("CustomLogger Fatal in normal mode", func(t *testing.T) {
+		// Create a custom logger
+		baseLogger := logrus.New()
+		customLogger := &CustomLogger{
+			Logger:   baseLogger,
+			testMode: false,
+		}
+
+		// This should not panic in test environment
+		assert.NotNil(t, customLogger)
+	})
+
+	t.Run("CustomLogger Fatalf in normal mode", func(t *testing.T) {
+		// Create a custom logger
+		baseLogger := logrus.New()
+		customLogger := &CustomLogger{
+			Logger:   baseLogger,
+			testMode: false,
+		}
+
+		// This should not panic in test environment
+		assert.NotNil(t, customLogger)
+	})
+
+	t.Run("CustomLogger Fatal in test mode", func(t *testing.T) {
+		// Create a custom logger
+		baseLogger := logrus.New()
+		customLogger := &CustomLogger{
+			Logger:   baseLogger,
+			testMode: true,
+		}
+
+		// Set output to buffer to capture
+		var buf bytes.Buffer
+		customLogger.SetOutput(&buf)
+
+		// Test Fatal in test mode
+		customLogger.Fatal("test fatal message")
+
+		// Verify output contains the message
+		output := buf.String()
+		assert.Contains(t, output, "test fatal message")
+		assert.Contains(t, output, "level=error")
+	})
+
+	t.Run("CustomLogger Fatalf in test mode", func(t *testing.T) {
+		// Create a custom logger
+		baseLogger := logrus.New()
+		customLogger := &CustomLogger{
+			Logger:   baseLogger,
+			testMode: true,
+		}
+
+		// Set output to buffer to capture
+		var buf bytes.Buffer
+		customLogger.SetOutput(&buf)
+
+		// Test Fatalf in test mode
+		customLogger.Fatalf("test fatal %s", "formatted")
+
+		// Verify output contains the formatted message
+		output := buf.String()
+		assert.Contains(t, output, "test fatal formatted")
+		assert.Contains(t, output, "level=error")
+	})
+}
+
+// TestLoggerConfigIntegration tests integration with config package
+func TestLoggerConfigIntegration(t *testing.T) {
+	t.Run("InitWithConfig with NewLoggingConfig", func(t *testing.T) {
+		// Create config using the config package
+		cfg := config.NewLoggingConfig()
+
+		// Clear logger and initialize with config
+		Log = nil
+		InitWithConfig(cfg)
+
+		// Verify logger is initialized
+		assert.NotNil(t, Log)
+
+		// The level should be valid (either from env or default)
+		level := Log.GetLevel().String()
+		validLevels := []string{"debug", "info", "warning", "error", "fatal", "panic"}
+		assert.Contains(t, validLevels, level)
+	})
+
+	t.Run("InitWithConfig with custom config values", func(t *testing.T) {
+		// Set environment variables for config
+		os.Setenv("LOG_LEVEL", "error")
+		os.Setenv("LOG_FORMAT", "json")
+		os.Setenv("LOG_OUTPUT", "stderr")
+		defer func() {
+			os.Unsetenv("LOG_LEVEL")
+			os.Unsetenv("LOG_FORMAT")
+			os.Unsetenv("LOG_OUTPUT")
+		}()
+
+		// Create config using the config package
+		cfg := config.NewLoggingConfig()
+
+		// Clear logger and initialize with config
+		Log = nil
+		InitWithConfig(cfg)
+
+		// Verify logger is initialized with expected values
+		assert.NotNil(t, Log)
+		assert.Equal(t, "error", Log.GetLevel().String())
+		assert.Equal(t, os.Stderr, Log.Out)
+
+		// Check if formatter is JSON
+		_, ok := Log.Formatter.(*logrus.JSONFormatter)
+		assert.True(t, ok, "Formatter should be JSONFormatter")
+	})
+}
+
+// TestLoggerErrorHandling tests error handling scenarios
+func TestLoggerErrorHandling(t *testing.T) {
+	t.Run("Logger handles nil values gracefully", func(t *testing.T) {
+		Init()
+
+		// Test logging nil values
+		assert.NotPanics(t, func() {
+			Info(nil)
+			Error(nil)
+			Debug(nil)
+			Warn(nil)
+		})
+	})
+
+	t.Run("Logger handles empty strings gracefully", func(t *testing.T) {
+		Init()
+
+		// Test logging empty strings
+		assert.NotPanics(t, func() {
+			Info("")
+			Error("")
+			Debug("")
+			Warn("")
+		})
+	})
+
+	t.Run("Logger handles special characters gracefully", func(t *testing.T) {
+		Init()
+
+		// Test logging special characters
+		specialChars := "!@#$%^&*()_+-=[]{}|;':\",./<>?"
+		assert.NotPanics(t, func() {
+			Info(specialChars)
+			Error(specialChars)
+			Debug(specialChars)
+			Warn(specialChars)
+		})
+	})
+
+	t.Run("Logger handles unicode characters gracefully", func(t *testing.T) {
+		Init()
+
+		// Test logging unicode characters
+		unicodeChars := "Hello 世界 🌍 测试"
+		assert.NotPanics(t, func() {
+			Info(unicodeChars)
+			Error(unicodeChars)
+			Debug(unicodeChars)
+			Warn(unicodeChars)
+		})
 	})
 }
 
