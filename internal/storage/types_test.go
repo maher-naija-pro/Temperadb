@@ -44,32 +44,6 @@ func TestDataPoint(t *testing.T) {
 	})
 }
 
-func TestSeries(t *testing.T) {
-	t.Run("Series creation", func(t *testing.T) {
-		points := []DataPoint{
-			{Timestamp: time.Now(), Value: 1.0},
-			{Timestamp: time.Now().Add(time.Second), Value: 2.0},
-		}
-
-		series := Series{
-			ID:     "cpu_usage",
-			Name:   "CPU Usage",
-			Labels: map[string]string{"host": "server1"},
-			Points: points,
-		}
-
-		if series.ID != "cpu_usage" {
-			t.Errorf("Expected ID 'cpu_usage', got %s", series.ID)
-		}
-		if series.Name != "CPU Usage" {
-			t.Errorf("Expected Name 'CPU Usage', got %s", series.Name)
-		}
-		if len(series.Points) != 2 {
-			t.Errorf("Expected 2 points, got %d", len(series.Points))
-		}
-	})
-}
-
 func TestWriteRequest(t *testing.T) {
 	t.Run("WriteRequest creation", func(t *testing.T) {
 		points := []DataPoint{

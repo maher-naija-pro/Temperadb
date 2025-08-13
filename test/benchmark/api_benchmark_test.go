@@ -11,6 +11,7 @@ import (
 	"timeseriesdb/internal/storage"
 )
 
+
 // BenchmarkHTTPWriteSinglePoint benchmarks HTTP write endpoint with single point
 func BenchmarkHTTPWriteSinglePoint(b *testing.B) {
 	testFile := "benchmark_http_test.tsv"
