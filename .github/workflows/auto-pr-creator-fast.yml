@@ -1,0 +1,41 @@
+name: Auto PR Creator (Fast)
+
+on:
+  push:
+    branches:
+      - 'test*'
+      - 'test'
+      - 'feature*'
+      - 'dev*'
+  workflow_dispatch:
+
+jobs:
+  create-pr:
+    runs-on: ubuntu-latest
+    if: github.ref != 'refs/heads/main' && github.ref != 'refs/heads/master'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 1 # Minimal depth for speed
+    
+    - name: Create PR if not exists
+      run: |
+        BRANCH_NAME=${GITHUB_REF#refs/heads/}
+        
+        # Quick check and create PR in one step
+        if ! gh pr list --head "$BRANCH_NAME" --base main --json number --limit 1 | grep -q "number"; then
+          echo "Creating PR for $BRANCH_NAME..."
+          gh pr create \
+            --title "Auto PR: $BRANCH_NAME → main" \
+            --body "Auto-generated PR from $BRANCH_NAME" \
+            --base main \
+            --head "$BRANCH_NAME" \
+            --draft
+          echo "✅ PR created"
+        else
+          echo "⏭️ PR already exists"
+        fi
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
