@@ -1,4 +1,4 @@
-name: Update README Badges
+name: update-readme-badges
 
 on:
   push:
