@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 	"timeseriesdb/internal/config"
+	"timeseriesdb/internal/errors"
 	"timeseriesdb/internal/storage"
 	"timeseriesdb/internal/types"
 
@@ -112,24 +113,24 @@ func parseLineProtocol(input string) ([]types.Point, error) {
 
 		parts := strings.SplitN(line, " ", 3)
 		if len(parts) < 3 {
-			return nil, fmt.Errorf("invalid line format: expected 3 parts, got %d", len(parts))
+			return nil, errors.NewValidationError("invalid line format: expected 3 parts, got " + strconv.Itoa(len(parts)))
 		}
 
 		// Parse measurement and tags
 		measurementAndTags := strings.Split(parts[0], ",")
 		measurement := measurementAndTags[0]
 		if measurement == "" {
-			return nil, fmt.Errorf("missing measurement name")
+			return nil, errors.NewValidationError("missing measurement name")
 		}
 
 		tags := map[string]string{}
 		for _, tag := range measurementAndTags[1:] {
 			kv := strings.SplitN(tag, "=", 2)
 			if len(kv) != 2 {
-				return nil, fmt.Errorf("malformed tag: %s", tag)
+				return nil, errors.NewValidationError("malformed tag: " + tag)
 			}
 			if kv[0] == "" || kv[1] == "" {
-				return nil, fmt.Errorf("invalid tag key or value: %s", tag)
+				return nil, errors.NewValidationError("invalid tag key or value: " + tag)
 			}
 			tags[kv[0]] = kv[1]
 		}
@@ -138,21 +139,21 @@ func parseLineProtocol(input string) ([]types.Point, error) {
 		fields := map[string]float64{}
 		fieldPairs := strings.Split(parts[1], ",")
 		if len(fieldPairs) == 0 {
-			return nil, fmt.Errorf("no fields provided")
+			return nil, errors.NewValidationError("no fields provided")
 		}
 
 		for _, fieldPair := range fieldPairs {
 			kv := strings.SplitN(fieldPair, "=", 2)
 			if len(kv) != 2 {
-				return nil, fmt.Errorf("malformed field: %s", fieldPair)
+				return nil, errors.NewValidationError("malformed field: " + fieldPair)
 			}
 			if kv[0] == "" {
-				return nil, fmt.Errorf("empty field name")
+				return nil, errors.NewValidationError("empty field name")
 			}
 
 			val, err := strconv.ParseFloat(strings.TrimSuffix(kv[1], "i"), 64)
 			if err != nil {
-				return nil, fmt.Errorf("invalid field value '%s': %v", kv[1], err)
+				return nil, errors.WrapWithType(err, errors.ErrorTypeValidation, "invalid field value '"+kv[1]+"'")
 			}
 			fields[kv[0]] = val
 		}
@@ -160,7 +161,7 @@ func parseLineProtocol(input string) ([]types.Point, error) {
 		// Parse timestamp
 		tsInt, err := strconv.ParseInt(parts[2], 10, 64)
 		if err != nil {
-			return nil, fmt.Errorf("invalid timestamp: %v", err)
+			return nil, errors.WrapWithType(err, errors.ErrorTypeValidation, "invalid timestamp")
 		}
 		timestamp := time.Unix(0, tsInt)
 

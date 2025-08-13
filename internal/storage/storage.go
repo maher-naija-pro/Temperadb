@@ -9,6 +9,7 @@ import (
 	"sync"                         // Import sync package for thread-safe operations
 	"time"                         // Import time package for timestamp handling
 	"timeseriesdb/internal/config" // Import internal config package
+	"timeseriesdb/internal/errors" // Import internal errors package
 	"timeseriesdb/internal/logger" // Import internal logger package
 	"timeseriesdb/internal/types"  // Import internal types package
 )
@@ -55,7 +56,7 @@ func (s *Storage) WritePoint(p types.Point) error {
 
 	// Check if we need to rotate the file due to size limits
 	if err := s.checkAndRotateFile(); err != nil {
-		return err // Return error if rotation fails
+		return errors.WrapWithType(err, errors.ErrorTypeStorage, "file rotation failed")
 	}
 
 	// Iterate through all fields in the point
@@ -71,7 +72,7 @@ func (s *Storage) WritePoint(p types.Point) error {
 		// Write the row to the TSV file
 		err := s.writer.Write(row)
 		if err != nil {
-			return err // Return error if write fails
+			return errors.WrapWithType(err, errors.ErrorTypeStorage, "failed to write point to storage")
 		}
 	}
 	// Flush the writer to ensure data is written to disk
@@ -90,7 +91,7 @@ func (s *Storage) checkAndRotateFile() error {
 	// Get file information to check current size
 	fileInfo, err := s.file.Stat()
 	if err != nil {
-		return err // Return error if stat fails
+		return errors.WrapWithType(err, errors.ErrorTypeStorage, "failed to get file info")
 	}
 
 	// Check if current file size exceeds the maximum allowed size
@@ -113,18 +114,18 @@ func (s *Storage) rotateFile() error {
 
 	// Ensure the backup directory exists, create it if it doesn't
 	if err := os.MkdirAll(s.config.BackupDir, 0755); err != nil {
-		return err // Return error if directory creation fails
+		return errors.WrapWithType(err, errors.ErrorTypeStorage, "failed to create backup directory")
 	}
 
 	// Rename the current data file to the backup location
 	if err := os.Rename(s.config.DataFile, backupPath); err != nil {
-		return err // Return error if rename fails
+		return errors.WrapWithType(err, errors.ErrorTypeStorage, "failed to rename file for rotation")
 	}
 
 	// Open a new file with the same name for continued writing
 	f, err := os.OpenFile(s.config.DataFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
-		return err // Return error if new file cannot be opened
+		return errors.WrapWithType(err, errors.ErrorTypeStorage, "failed to open new file after rotation")
 	}
 
 	// Update the storage struct with the new file and writer
@@ -172,13 +173,13 @@ func (s *Storage) Clear() error {
 	// Truncate the file to 0 bytes, effectively clearing all data
 	err := os.Truncate(s.config.DataFile, 0)
 	if err != nil {
-		return err // Return error if truncate fails
+		return errors.WrapWithType(err, errors.ErrorTypeStorage, "failed to truncate file")
 	}
 
 	// Reopen the file for writing (it will be empty now)
 	f, err := os.OpenFile(s.config.DataFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
-		return err // Return error if file cannot be reopened
+		return errors.WrapWithType(err, errors.ErrorTypeStorage, "failed to reopen file after clearing")
 	}
 
 	// Update the storage struct with the new empty file and writer

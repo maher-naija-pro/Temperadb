@@ -1,10 +1,11 @@
 package server
 
 import (
-	"fmt"
+	"context"
 	"net/http"
 	aphttp "timeseriesdb/internal/api/http"
 	"timeseriesdb/internal/config"
+	"timeseriesdb/internal/errors"
 	"timeseriesdb/internal/logger"
 	"timeseriesdb/internal/metrics"
 	"timeseriesdb/internal/storage"
@@ -21,7 +22,7 @@ type Server struct {
 func NewServer(cfg *config.Config) (*Server, error) {
 	// Check for nil config
 	if cfg == nil {
-		return nil, fmt.Errorf("config cannot be nil")
+		return nil, errors.NewValidationError("config cannot be nil")
 	}
 
 	// Initialize logger with configuration
@@ -69,5 +70,23 @@ func (s *Server) Close() error {
 	if s.storage != nil {
 		s.storage.Close()
 	}
+	return nil
+}
+
+// Shutdown gracefully shuts down the server
+func (s *Server) Shutdown(ctx context.Context) error {
+	logger.Info("Shutting down server gracefully...")
+
+	// Shutdown HTTP server
+	if err := s.httpServer.Shutdown(ctx); err != nil {
+		logger.Errorf("HTTP server shutdown error: %v", err)
+	}
+
+	// Close storage
+	if err := s.Close(); err != nil {
+		logger.Errorf("Storage close error: %v", err)
+	}
+
+	logger.Info("Server shutdown complete")
 	return nil
 }
