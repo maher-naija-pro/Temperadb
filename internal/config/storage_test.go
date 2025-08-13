@@ -10,9 +10,9 @@ import (
 func TestStorageConfig(t *testing.T) {
 	t.Run("NewStorageConfig with defaults", func(t *testing.T) {
 		cfg := NewStorageConfig()
-		assert.Equal(t, "data.tsv", cfg.DataFile)
+		assert.Equal(t, "/tmp/data.tsv", cfg.DataFile)
 		assert.Equal(t, int64(1073741824), cfg.MaxFileSize)
-		assert.Equal(t, "backups", cfg.BackupDir)
+		assert.Equal(t, "/tmp/backups", cfg.BackupDir)
 		assert.False(t, cfg.Compression)
 	})
 
@@ -79,8 +79,8 @@ func TestStorageConfig(t *testing.T) {
 		}()
 
 		cfg := NewStorageConfig()
-		assert.Equal(t, "data.tsv", cfg.DataFile)
-		assert.Equal(t, "backups", cfg.BackupDir)
+		assert.Equal(t, "/tmp/data.tsv", cfg.DataFile)
+		assert.Equal(t, "/tmp/backups", cfg.BackupDir)
 	})
 
 	t.Run("NewStorageConfig with whitespace values", func(t *testing.T) {
@@ -94,7 +94,7 @@ func TestStorageConfig(t *testing.T) {
 
 		cfg := NewStorageConfig()
 		// Whitespace is trimmed, so empty strings fall back to defaults
-		assert.Equal(t, "data.tsv", cfg.DataFile)
-		assert.Equal(t, "backups", cfg.BackupDir)
+		assert.Equal(t, "/tmp/data.tsv", cfg.DataFile)
+		assert.Equal(t, "/tmp/backups", cfg.BackupDir)
 	})
 }

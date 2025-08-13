@@ -13,6 +13,7 @@ import (
 func TestNewRouter(t *testing.T) {
 	// Create a real storage instance for testing
 	storageConfig := config.StorageConfig{
+		DataDir:     t.TempDir(),
 		DataFile:    "test_router_storage.tsv",
 		MaxFileSize: 1024,
 		BackupDir:   "test_backups",
@@ -48,6 +49,7 @@ func TestNewRouter(t *testing.T) {
 func TestRouter_GetMux(t *testing.T) {
 	// Create a real storage instance for testing
 	storageConfig := config.StorageConfig{
+		DataDir:     t.TempDir(),
 		DataFile:    "test_router_mux_storage.tsv",
 		MaxFileSize: 1024,
 		BackupDir:   "test_backups_mux",
@@ -109,6 +111,7 @@ func TestRouter_GetMux(t *testing.T) {
 func TestRouter_Integration_WriteEndpoint(t *testing.T) {
 	// Create a real storage instance for testing
 	storageConfig := config.StorageConfig{
+		DataDir:     t.TempDir(),
 		DataFile:    "test_router_write_storage.tsv",
 		MaxFileSize: 1024,
 		BackupDir:   "test_backups_write",
@@ -145,6 +148,7 @@ func TestRouter_Integration_WriteEndpoint(t *testing.T) {
 func TestRouter_Integration_HealthEndpoint(t *testing.T) {
 	// Create a real storage instance for testing
 	storageConfig := config.StorageConfig{
+		DataDir:     t.TempDir(),
 		DataFile:    "test_router_health_storage.tsv",
 		MaxFileSize: 1024,
 		BackupDir:   "test_backups_health",
@@ -194,6 +198,7 @@ func TestRouter_Integration_MetricsEndpoint(t *testing.T) {
 
 	// Create a real storage instance for testing
 	storageConfig := config.StorageConfig{
+		DataDir:     t.TempDir(),
 		DataFile:    "test_router_metrics_storage.tsv",
 		MaxFileSize: 1024,
 		BackupDir:   "test_backups_metrics",

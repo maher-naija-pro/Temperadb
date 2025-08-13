@@ -34,6 +34,7 @@ func setupTestStorage(t *testing.T) *storage.Storage {
 	os.Remove(testDataFile)
 
 	storageConfig := config.StorageConfig{
+		DataDir:     t.TempDir(),
 		DataFile:    testDataFile,
 		MaxFileSize: 1073741824, // 1GB
 		BackupDir:   "backups",
