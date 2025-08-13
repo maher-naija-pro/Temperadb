@@ -1,6 +1,10 @@
 package config
 
-import "time"
+import (
+	"time"
+
+	"timeseriesdb/internal/envvars"
+)
 
 // DatabaseConfig holds database-related configuration
 type DatabaseConfig struct {
@@ -11,9 +15,11 @@ type DatabaseConfig struct {
 
 // NewDatabaseConfig creates a new DatabaseConfig with default values
 func NewDatabaseConfig() DatabaseConfig {
+	parser := envvars.NewParser()
+
 	return DatabaseConfig{
-		MaxConnections: getIntEnvWithDefault("MAX_CONNECTIONS", defaults["MAX_CONNECTIONS"]),
-		ConnectionTTL:  getDurationEnvWithDefault("CONNECTION_TTL", defaults["CONNECTION_TTL"]),
-		QueryTimeout:   getDurationEnvWithDefault("QUERY_TIMEOUT", defaults["QUERY_TIMEOUT"]),
+		MaxConnections: parser.Int(envvars.MaxConnections, envvars.DefaultMaxConnections),
+		ConnectionTTL:  parser.Duration(envvars.ConnectionTTL, envvars.DefaultConnectionTTL),
+		QueryTimeout:   parser.Duration(envvars.QueryTimeout, envvars.DefaultQueryTimeout),
 	}
 }

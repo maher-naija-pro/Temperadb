@@ -84,7 +84,7 @@ func TestStorageConfig(t *testing.T) {
 	})
 
 	t.Run("NewStorageConfig with whitespace values", func(t *testing.T) {
-		// Test with whitespace values (should use whitespace values as they're not empty)
+		// Test with whitespace values (should trim whitespace and use defaults)
 		os.Setenv("DATA_FILE", "   ")
 		os.Setenv("BACKUP_DIR", "  ")
 		defer func() {
@@ -93,7 +93,8 @@ func TestStorageConfig(t *testing.T) {
 		}()
 
 		cfg := NewStorageConfig()
-		assert.Equal(t, "   ", cfg.DataFile)
-		assert.Equal(t, "  ", cfg.BackupDir)
+		// Whitespace is trimmed, so empty strings fall back to defaults
+		assert.Equal(t, "data.tsv", cfg.DataFile)
+		assert.Equal(t, "backups", cfg.BackupDir)
 	})
 }

@@ -3,6 +3,8 @@ package config
 import (
 	"time"
 
+	"timeseriesdb/internal/envvars"
+
 	"github.com/sirupsen/logrus"
 )
 
@@ -19,14 +21,16 @@ type LoggingConfig struct {
 
 // NewLoggingConfig creates a new LoggingConfig with default values
 func NewLoggingConfig() LoggingConfig {
+	parser := envvars.NewParser()
+
 	return LoggingConfig{
-		Level:      getEnvWithDefault("LOG_LEVEL", defaults["LOG_LEVEL"]),
-		Format:     getEnvWithDefault("LOG_FORMAT", defaults["LOG_FORMAT"]),
-		Output:     getEnvWithDefault("LOG_OUTPUT", defaults["LOG_OUTPUT"]),
-		MaxSize:    getIntEnvWithDefault("LOG_MAX_SIZE", "100"),
-		MaxBackups: getIntEnvWithDefault("LOG_MAX_BACKUPS", "3"),
-		MaxAge:     getIntEnvWithDefault("LOG_MAX_AGE", "28"),
-		Compress:   getBoolEnvWithDefault("LOG_COMPRESS", "true"),
+		Level:      parser.String(envvars.LogLevel, envvars.DefaultLogLevel),
+		Format:     parser.String(envvars.LogFormat, envvars.DefaultLogFormat),
+		Output:     parser.String(envvars.LogOutput, envvars.DefaultLogOutput),
+		MaxSize:    parser.Int(envvars.LogMaxSize, envvars.DefaultLogMaxSize),
+		MaxBackups: parser.Int(envvars.LogMaxBackups, envvars.DefaultLogMaxBackups),
+		MaxAge:     parser.Int(envvars.LogMaxAge, envvars.DefaultLogMaxAge),
+		Compress:   parser.Bool(envvars.LogCompress, envvars.DefaultLogCompress),
 	}
 }
 
