@@ -1,0 +1,81 @@
+name: Update README Badges
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  update-badges:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+      
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.24'
+        
+    - name: Download dependencies
+      run: go mod tidy
+           
+    - name: Run tests with coverage
+      run: go test -v -coverprofile=coverage.out ./...
+      
+    - name: Get coverage percentage
+      id: coverage
+      run: |
+        COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print $3}' | sed 's/%//')
+        echo "coverage=$COVERAGE" >> $GITHUB_OUTPUT
+        echo "Coverage: $COVERAGE%"
+      
+    - name: Get Go version
+      id: go_version
+      run: |
+        GO_VERSION=$(go version | awk '{print $3}' | sed 's/go//')
+        echo "go_version=$GO_VERSION" >> $GITHUB_OUTPUT
+        echo "Go version: $GO_VERSION"
+      
+    - name: Update README with badges
+      run: |
+        # Get repository info
+        REPO_OWNER=$(echo "$GITHUB_REPOSITORY" | cut -d'/' -f1)
+        REPO_NAME=$(echo "$GITHUB_REPOSITORY" | cut -d'/' -f2)
+        
+        # Create badges
+        BUILD_BADGE="[![Build Status](https://github.com/$REPO_OWNER/$REPO_NAME/workflows/Update%20README%20Badges/badge.svg)](https://github.com/$REPO_OWNER/$REPO_NAME/actions)"
+        COVERAGE_BADGE="[![Coverage](https://img.shields.io/badge/coverage-${{ steps.coverage.outputs.coverage }}%25-brightgreen?style=flat-square)](https://github.com/$REPO_OWNER/$REPO_NAME/actions)"
+        GO_VERSION_BADGE="[![Go Version](https://img.shields.io/badge/go-${{ steps.go_version.outputs.go_version }}-blue?style=flat-square)](https://golang.org/)"
+        LICENSE_BADGE="[![License](https://img.shields.io/badge/license-AGPL%20v3.0-red?style=flat-square)](LICENSE)"
+        
+        # Update README.md
+        sed -i "s|\[!\[Build Status\].*\]|$BUILD_BADGE|" README.md
+        sed -i "s|\[!\[Coverage\].*\]|$COVERAGE_BADGE|" README.md
+        sed -i "s|\[!\[Go Version\].*\]|$GO_VERSION_BADGE|" README.md
+        sed -i "s|\[!\[License\].*\]|$LICENSE_BADGE|" README.md
+        
+        # Add coverage badge if it doesn't exist
+        if ! grep -q "!\[Coverage\]" README.md; then
+          # Insert after the first line (title)
+          sed -i "1a\\$COVERAGE_BADGE" README.md
+        fi
+        
+        echo "README badges updated successfully"
+      
+    - name: Commit and push changes
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add README.md
+        if git diff --staged --quiet; then
+          echo "No changes to commit"
+        else
+          git commit -m "🤖 Update README badges [skip ci]"
+          git push
+        fi

@@ -1,6 +1,7 @@
 # TimeSeriesDB
 
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen?style=flat-square)](https://github.com/yourusername/timeseriesdb/actions)
+[![Coverage](https://img.shields.io/badge/coverage-0%25-brightgreen?style=flat-square)](https://github.com/yourusername/timeseriesdb/actions)
 [![Go Version](https://img.shields.io/badge/go-1.20+-blue?style=flat-square)](https://golang.org/)
 [![License](https://img.shields.io/badge/license-AGPL%20v3.0-red?style=flat-square)](LICENSE)
 
@@ -91,6 +92,16 @@ For detailed information, see:
 - **[⚡ Performance Guide](docs/PERFORMANCE.md)** - Benchmarking and optimization
 - **[🧪 Testing Guide](docs/TESTS.md)** - Test architecture and guidelines
 - **[🚀 CI/CD Guide](docs/CI_CD.md)** - Automated workflows and deployment
+
+## Badges
+
+This project uses automated CI/CD to keep badges up-to-date:
+- **Build Status** - Shows the current build status
+- **Coverage** - Displays test coverage percentage
+- **Go Version** - Shows the Go version used
+- **License** - Links to the license file
+
+Badges are automatically updated on every push to main/master branch.
 
 ## Project Structure
 
