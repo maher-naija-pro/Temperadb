@@ -17,6 +17,14 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
+  # Go environment variables to handle network issues
+  GOPROXY: https://proxy.golang.org,direct
+  GOSUMDB: sum.golang.org
+  GOPRIVATE: ""
+  GONOSUMDB: ""
+  GONOPROXY: ""
+  # Increase timeouts for network operations
+  GOFLAGS: -timeout=300s
 
 # Grant necessary permissions for the workflow
 permissions:
@@ -29,7 +37,7 @@ jobs:
   # Build for multiple platforms
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     outputs:
       VERSION: ${{ steps.version.outputs.VERSION }}
     strategy:
@@ -139,8 +147,49 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v4
       with:
-        go-version: '1.24'
+        go-version: '1.24.5'
         cache: true
+        check-latest: false
+
+    - name: Verify Go installation and fix toolchain issues
+      run: |
+        echo "Verifying Go installation..."
+        go version
+        go env GOROOT
+        go env GOPATH
+        
+        # Check if Go toolchain is properly installed
+        echo "Checking Go toolchain..."
+        if [ -d "$(go env GOROOT)/pkg/tool" ]; then
+          echo "Toolchain directory exists"
+          ls -la "$(go env GOROOT)/pkg/tool/" || echo "Cannot list toolchain directory"
+        else
+          echo "Toolchain directory missing, attempting to fix..."
+          # Try to reinstall Go if toolchain is corrupted
+          go install -a std
+        fi
+        
+        # Verify critical Go commands work
+        echo "Testing Go commands..."
+        go help > /dev/null && echo "✅ go help works" || echo "❌ go help failed"
+        go env > /dev/null && echo "✅ go env works" || echo "❌ go env failed"
+        
+        # Clear any existing module cache that might be corrupted
+        echo "Clearing module cache..."
+        go clean -modcache
+        go clean -cache
+        
+        echo "Go installation verification completed"
+
+    - name: Clear Go cache and retry setup if needed
+      if: failure()
+      run: |
+        echo "Go setup failed, clearing cache and retrying..."
+        rm -rf $GITHUB_WORKSPACE/.go
+        rm -rf $GITHUB_WORKSPACE/go.sum
+        go clean -cache -modcache -testcache
+        go mod download
+        go mod verify
 
     - name: Initialize Go module
       run: |
@@ -164,13 +213,72 @@ jobs:
           exit 1
         fi
         
-        # Now proceed with Go module operations
-        go mod tidy
-        go mod download
+        # Clear any existing cache issues
+        go clean -cache -modcache -testcache
+        
+        # Now proceed with Go module operations with retry logic
+        for i in {1..3}; do
+          echo "Attempt $i: Running go mod tidy..."
+          if go mod tidy; then
+            echo "go mod tidy succeeded on attempt $i"
+            break
+          else
+            echo "go mod tidy failed on attempt $i"
+            if [ $i -eq 3 ]; then
+              echo "All attempts failed, exiting"
+              exit 1
+            fi
+            echo "Waiting 5 seconds before retry..."
+            sleep 5
+          fi
+        done
+        
+        for i in {1..3}; do
+          echo "Attempt $i: Running go mod download..."
+          if go mod download; then
+            echo "go mod download succeeded on attempt $i"
+            break
+          else
+            echo "go mod download failed on attempt $i"
+            if [ $i -eq 3 ]; then
+              echo "All attempts failed, exiting"
+              exit 1
+            fi
+            echo "Waiting 5 seconds before retry..."
+            sleep 5
+          fi
+        done
+        
         echo "Go module status:"
         go mod verify
         echo "Go module info:"
         go list -m
+
+    - name: Pre-build cleanup and verification
+      run: |
+        echo "Performing pre-build cleanup..."
+        
+        # Clear any remaining cache issues
+        go clean -cache -modcache -testcache
+        
+        # Verify Go toolchain integrity
+        echo "Verifying Go toolchain..."
+        go version
+        go env GOROOT
+        go env GOPATH
+        
+        # Check for any corrupted toolchain files
+        if [ -d "$(go env GOROOT)/pkg/tool" ]; then
+          echo "Checking toolchain files..."
+          ls -la "$(go env GOROOT)/pkg/tool/$(go env GOOS)_$(go env GOARCH)/" || echo "Toolchain directory not accessible"
+        fi
+        
+        # Final module verification
+        echo "Final module verification..."
+        go mod verify
+        go mod download
+        
+        echo "Pre-build cleanup completed successfully"
 
     - name: Determine version
       id: version
@@ -210,14 +318,44 @@ jobs:
         go env
         echo "Building for ${{ matrix.os }}/${{ matrix.arch }}..."
         
-        # Ensure we're in the right directory and Go module is recognized
-        go mod download
+        # Final verification before build
+        echo "Final verification before build..."
         go mod verify
+        go mod download
         
-        # Try building with explicit module path
-        go build -mod=mod -ldflags="-s -w -X main.Version=${{ steps.version.outputs.VERSION }}" \
-                 -o "timeseriesdb-${{ matrix.os }}-${{ matrix.arch }}" \
-                 -a -installsuffix cgo .
+        # Check module status
+        echo "Module status:"
+        go list -m all | head -10
+        
+        # Try building with explicit module path and retry logic
+        for i in {1..3}; do
+          echo "Build attempt $i for ${{ matrix.os }}/${{ matrix.arch }}..."
+          
+          if go build -mod=mod -ldflags="-s -w -X main.Version=${{ steps.version.outputs.VERSION }}" \
+                     -o "timeseriesdb-${{ matrix.os }}-${{ matrix.arch }}" \
+                     -a -installsuffix cgo .; then
+            echo "Build succeeded on attempt $i"
+            break
+          else
+            echo "Build failed on attempt $i"
+            if [ $i -eq 3 ]; then
+              echo "All build attempts failed, exiting"
+              exit 1
+            fi
+            echo "Cleaning and retrying in 5 seconds..."
+            go clean -cache
+            sleep 5
+          fi
+        done
+        
+        # Verify the binary was created
+        if [ ! -f "timeseriesdb-${{ matrix.os }}-${{ matrix.arch }}" ]; then
+          echo "ERROR: Binary was not created"
+          exit 1
+        fi
+        
+        echo "Binary created successfully:"
+        ls -la "timeseriesdb-${{ matrix.os }}-${{ matrix.arch }}"
         
         # Create archive
         if [ "${{ matrix.os }}" = "windows" ]; then
@@ -225,6 +363,9 @@ jobs:
         else
           tar -czf "timeseriesdb-${{ matrix.os }}-${{ matrix.arch }}.tar.gz" "timeseriesdb-${{ matrix.os }}-${{ matrix.arch }}"
         fi
+        
+        echo "Archive created successfully:"
+        ls -la "timeseriesdb-${{ matrix.os }}-${{ matrix.arch }}".*
 
     - name: Upload Go binary artifacts
       uses: actions/upload-artifact@v4

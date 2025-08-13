@@ -1,0 +1,72 @@
+name: CI Simple
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+env:
+  # Go environment variables to handle network issues
+  GOPROXY: https://proxy.golang.org,direct
+  GOSUMDB: sum.golang.org
+  GOPRIVATE: ""
+  GONOSUMDB: ""
+  GONOPROXY: ""
+  # Increase timeouts for network operations
+  GOFLAGS: -timeout=300s
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.24.5'
+        cache: true
+        check-latest: false
+
+    - name: Download dependencies
+      run: |
+        # Clear any existing cache issues
+        go clean -cache -modcache -testcache
+        
+        # Retry logic for go mod tidy
+        for i in {1..3}; do
+          echo "Attempt $i: Running go mod tidy..."
+          if go mod tidy; then
+            echo "go mod tidy succeeded on attempt $i"
+            break
+          else
+            echo "go mod tidy failed on attempt $i"
+            if [ $i -eq 3 ]; then
+              echo "All attempts failed, exiting"
+              exit 1
+            fi
+            echo "Waiting 5 seconds before retry..."
+            sleep 5
+          fi
+        done
+           
+    - name: Run tests
+      run: go test -v  ./...
+      working-directory: .
+      
+    - name: Run tests with coverage
+      run: go test -v -coverprofile=coverage.out ./...
+      working-directory: .
+      
+    - name: Show coverage
+      run: go tool cover -func=coverage.out
+      working-directory: .
+      
+    - name: Quick benchmark check
+      run: |
+        echo "Running quick benchmark check..."
+        go test -bench=. -benchmem -timeout=2m ./test/ | head -20
+      working-directory: .

@@ -1,25 +1,23 @@
 # TimeSeriesDB
 
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen?style=flat-square)](https://github.com/yourusername/timeseriesdb/actions)
-[![Coverage](https://img.shields.io/badge/coverage-80%25-green?style=flat-square)](https://github.com/yourusername/timeseriesdb/actions)
 [![Go Version](https://img.shields.io/badge/go-1.20+-blue?style=flat-square)](https://golang.org/)
-[![License](https://img.shields.io/badge/license-MIT-green?style=flat-square)](LICENSE)
+[![License](https://img.shields.io/badge/license-AGPL%20v3.0-red?style=flat-square)](LICENSE)
 
 A lightweight, high-performance time series database written in Go that accepts InfluxDB line protocol for data ingestion.
 
-## Features
+## What is TimeSeriesDB?
 
-- **HTTP API**: RESTful endpoint for writing time series data
-- **InfluxDB Line Protocol**: Compatible with InfluxDB line protocol format
-- **TSV Storage**: Efficient tab-separated value storage backend
-- **Environment Configuration**: Configurable via environment variables
-- **Structured Logging**: Comprehensive logging with logrus
-- **Metrics & Monitoring**: Built-in Prometheus metrics for observability
-- **High Performance**: Optimized for high-throughput time series data ingestion
+TimeSeriesDB is a simple yet powerful time series database designed for:
+- **High-throughput data ingestion** using InfluxDB line protocol
+- **Efficient storage** with TSV (tab-separated values) backend
+- **HTTP API** for easy integration
+- **Built-in metrics** for monitoring and observability
+- **Lightweight deployment** with minimal resource requirements
 
 ## Quick Start
 
-### Installation
+### 1. Install & Build
 
 ```bash
 git clone <your-repo-url>
@@ -28,7 +26,7 @@ go mod download
 go build -o timeseriesdb
 ```
 
-### Configuration
+### 2. Configure
 
 Create a `.env` file:
 ```env
@@ -36,126 +34,99 @@ PORT=8080
 DATA_FILE=data.tsv
 ```
 
-### Usage
+### 3. Run
 
 ```bash
 # Start the server
 ./timeseriesdb
 
-# Write data
-curl -X POST http://localhost:8080/write \
-  -d "cpu,host=server01,region=us-west value=0.64 1434055562000000000"
+# Check if it's running
+curl http://localhost:8080/health
 ```
+
+### 4. Write Data
+
+```bash
+# Single data point
+curl -X POST http://localhost:8080/write \
+  -d "cpu,host=server01 value=0.64"
+
+# With timestamp
+curl -X POST http://localhost:8080/write \
+  -d "cpu,host=server01 value=0.64 1434055562000000000"
+
+# Multiple points
+curl -X POST http://localhost:8080/write \
+  -d "cpu,host=server01 value=0.64 1434055562000000000
+cpu,host=server01 value=0.65 1434055563000000000"
+```
+
+## Data Format
+
+TimeSeriesDB accepts standard InfluxDB line protocol:
+
+```
+measurement[,tag_key=tag_value...] field_key=field_value[,field_key=field_value...] [timestamp]
+```
+
+**Examples:**
+- `cpu value=0.64` - Basic measurement
+- `cpu,host=server01 value=0.64` - With tags
+- `cpu,host=server01 value=0.64,user=23` - Multiple fields
+- `cpu,host=server01 value=0.64 1434055562000000000` - With timestamp
+
+## API Endpoints
+
+- **`POST /write`** - Write time series data
+- **`GET /health`** - Health check
+- **`GET /metrics`** - Prometheus metrics
 
 ## Documentation
 
-- **[Installation & Setup](docs/INSTALLATION.md)** - Detailed installation instructions and configuration
-- **[API Reference](docs/API_REFERENCE.md)** - Complete API documentation and examples
-- **[Metrics & Monitoring](docs/METRICS_README.md)** - Comprehensive metrics system and Prometheus integration
-- **[Development Guide](docs/DEVELOPMENT.md)** - Development setup, testing, and contribution guidelines
-- **[Performance & Benchmarks](docs/PERFORMANCE.md)** - Performance testing, benchmarks, and optimization
-- **[CI/CD Pipeline](docs/CI_CD.md)** - Continuous integration and deployment information
+For detailed information, see:
+
+- **[📖 Installation Guide](docs/INSTALLATION.md)** - Complete setup and configuration
+- **[🔌 API Reference](docs/API_REFERENCE.md)** - Full API documentation and examples
+- **[📊 Metrics & Monitoring](docs/METRICS.md)** - Prometheus integration and observability
+- **[⚡ Performance Guide](docs/PERFORMANCE.md)** - Benchmarking and optimization
+- **[🧪 Testing Guide](docs/TESTS.md)** - Test architecture and guidelines
+- **[🚀 CI/CD Guide](docs/CI_CD.md)** - Automated workflows and deployment
 
 ## Project Structure
 
 ```
 tsdb/
-├── main.go                    # Main application and HTTP server
-├── internal/                  # Internal packages
-│   ├── storage/              # Data storage implementation
-│   ├── ingestion/            # Line protocol ingestion
-│   ├── types/                # Data type definitions
-│   ├── logger/               # Logging utilities
-│   ├── metrics/              # Prometheus metrics and monitoring
-│   ├── config/               # Configuration management
-│   └── api/                  # HTTP API handlers and middleware
-├── test/                     # Test files and benchmarks
+├── main.go                    # Main application
+├── internal/                  # Core packages
+│   ├── storage/              # Data storage
+│   ├── ingestion/            # Line protocol parsing
+│   ├── api/                  # HTTP handlers
+│   ├── metrics/              # Prometheus metrics
+│   └── config/               # Configuration
+├── test/                     # Tests and benchmarks
 ├── docs/                     # Documentation
-├── scripts/                  # Utility scripts
-├── go.mod                    # Go module dependencies
-└── Makefile                  # Build and test automation
+└── scripts/                  # Utility scripts
 ```
 
-## Testing
-
-```bash
-# Run all tests
-make test
-
-# Run benchmarks
-make benchmark
-
-# Run with coverage
-make test-coverage
-```
-
-## CI/CD and Package Building
-
-This project includes comprehensive CI/CD workflows that automatically build and publish packages for multiple platforms.
-
-### Automated Builds
-
-The CI/CD system automatically builds packages when:
-- You push a tag (e.g., `git tag v1.0.0 && git push origin v1.0.0`)
-- You create a pull request
-- You manually trigger the workflow
-
-### Supported Platforms
-
-- **Linux**: AMD64, ARM64
-- **Windows**: AMD64
-- **macOS**: AMD64, ARM64 (Apple Silicon)
-
-### Building Locally
+## Building
 
 ```bash
 # Build for current platform
 make build
-
-# Build for specific platform
-make build-linux
-make build-windows
-make build-darwin
 
 # Build for all platforms
 make build-all
 
 # Build Docker image
 make build-docker
-
-# Clean build artifacts
-make clean-build
-
-# Show build help
-make build-help
 ```
-
-### GitHub Packages
-
-When you create a release tag, the CI/CD system automatically:
-1. Builds binaries for all supported platforms
-2. Creates a GitHub release with downloadable artifacts
-3. Publishes Docker images to GitHub Container Registry
-4. Runs security scans and vulnerability checks
-
-### Docker Images
-
-Docker images are available at:
-```
-ghcr.io/yourusername/timeseriesdb:latest
-ghcr.io/yourusername/timeseriesdb:v1.0.0
-```
-
-### Manual Workflow Trigger
-
-You can manually trigger the build workflow:
-1. Go to Actions → Build and Publish Packages
-2. Click "Run workflow"
-3. Optionally specify a version
-4. Click "Run workflow"
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) file for details. 
+GNU Affero General Public License v3.0 - see [LICENSE](LICENSE) file for details.
+
+---
+
+**Need help?** Check the [documentation](docs/) or [create an issue](https://github.com/yourusername/timeseriesdb/issues). 
 
 
