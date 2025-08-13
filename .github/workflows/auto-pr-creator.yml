@@ -64,7 +64,6 @@ jobs:
           --label "autopr,ci" \
           --reviewer "github-actions[bot]" \
           --assignee "${{ github.actor }}" \
-          --add-reviewer "${{ github.actor }}" \
           --fill \
           --draft=false
         
