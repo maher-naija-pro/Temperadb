@@ -3,9 +3,10 @@ package main
 import (
 	"log"
 	"net/http"
-	"timeseriesdb/config"
 	aphttp "timeseriesdb/internal/api/http"
+	"timeseriesdb/internal/config"
 	"timeseriesdb/internal/logger"
+	"timeseriesdb/internal/metrics"
 	"timeseriesdb/internal/storage"
 )
 
@@ -22,6 +23,9 @@ func main() {
 
 	// Initialize logger with configuration
 	logger.InitWithConfig(cfg.Logging)
+
+	// Initialize metrics system
+	metrics.Init()
 
 	// Initialize storage with configuration
 	storageInstance = storage.NewStorage(cfg.Storage)
@@ -41,5 +45,6 @@ func main() {
 
 	logger.Infof("Starting TimeSeriesDB on port %s...", cfg.Server.Port)
 	logger.Infof("Configuration: %s", cfg.String())
+	logger.Infof("Metrics available at: http://localhost:%s/metrics", cfg.Server.Port)
 	log.Fatal(server.ListenAndServe())
 }

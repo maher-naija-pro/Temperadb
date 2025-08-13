@@ -14,6 +14,7 @@ A lightweight, high-performance time series database written in Go that accepts 
 - **TSV Storage**: Efficient tab-separated value storage backend
 - **Environment Configuration**: Configurable via environment variables
 - **Structured Logging**: Comprehensive logging with logrus
+- **Metrics & Monitoring**: Built-in Prometheus metrics for observability
 - **High Performance**: Optimized for high-throughput time series data ingestion
 
 ## Quick Start
@@ -50,6 +51,7 @@ curl -X POST http://localhost:8080/write \
 
 - **[Installation & Setup](docs/INSTALLATION.md)** - Detailed installation instructions and configuration
 - **[API Reference](docs/API_REFERENCE.md)** - Complete API documentation and examples
+- **[Metrics & Monitoring](docs/METRICS_README.md)** - Comprehensive metrics system and Prometheus integration
 - **[Development Guide](docs/DEVELOPMENT.md)** - Development setup, testing, and contribution guidelines
 - **[Performance & Benchmarks](docs/PERFORMANCE.md)** - Performance testing, benchmarks, and optimization
 - **[CI/CD Pipeline](docs/CI_CD.md)** - Continuous integration and deployment information
@@ -63,7 +65,10 @@ tsdb/
 │   ├── storage/              # Data storage implementation
 │   ├── ingestion/            # Line protocol ingestion
 │   ├── types/                # Data type definitions
-│   └── logger/               # Logging utilities
+│   ├── logger/               # Logging utilities
+│   ├── metrics/              # Prometheus metrics and monitoring
+│   ├── config/               # Configuration management
+│   └── api/                  # HTTP API handlers and middleware
 ├── test/                     # Test files and benchmarks
 ├── docs/                     # Documentation
 ├── scripts/                  # Utility scripts

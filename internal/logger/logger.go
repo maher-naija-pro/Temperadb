@@ -3,7 +3,8 @@ package logger
 import (
 	"io"
 	"os"
-	"timeseriesdb/config"
+	"timeseriesdb/internal/config"
+
 	"github.com/sirupsen/logrus"
 )
 

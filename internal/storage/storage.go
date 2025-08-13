@@ -7,17 +7,17 @@ import (
 	"strings"
 	"sync"
 	"time"
-	"timeseriesdb/config"
+	"timeseriesdb/internal/config"
 	"timeseriesdb/internal/logger"
 	"timeseriesdb/internal/types"
 )
 
 // Storage persists time-series data in TSV format
 type Storage struct {
-	file       *os.File
-	writer     *csv.Writer
-	mu         sync.Mutex
-	config     config.StorageConfig
+	file        *os.File
+	writer      *csv.Writer
+	mu          sync.Mutex
+	config      config.StorageConfig
 	maxFileSize int64
 }
 
