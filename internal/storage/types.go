@@ -11,13 +11,7 @@ type DataPoint struct {
 	Labels    map[string]string
 }
 
-// Series represents a time series with metadata
-type Series struct {
-	ID     string
-	Name   string
-	Labels map[string]string
-	Points []DataPoint
-}
+
 
 // WriteRequest represents a write operation
 type WriteRequest struct {
@@ -31,13 +25,6 @@ type ReadRequest struct {
 	Start    time.Time
 	End      time.Time
 	Limit    int
-}
-
-// StorageEngine defines the interface for the storage engine
-type StorageEngine interface {
-	Write(req WriteRequest) error
-	Read(req ReadRequest) ([]DataPoint, error)
-	Close() error
 }
 
 // MemTable represents an in-memory table for buffering writes
