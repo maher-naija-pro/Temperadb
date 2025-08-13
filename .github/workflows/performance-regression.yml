@@ -1,4 +1,4 @@
-name: Performance Regression Detection
+name: performance-regression
 
 on:
   push:

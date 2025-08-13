@@ -1,4 +1,4 @@
-name: CI Simple
+name: tests-pipeline
 
 on:
   push:

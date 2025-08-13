@@ -1,4 +1,4 @@
-name: Build and Publish Packages
+name: release-builds
 
 on:
   push:
@@ -17,16 +17,12 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
-  # Go environment variables to handle network issues
-  GOPROXY: https://proxy.golang.org,direct
+  # Go environment variables with fallback proxies for network resilience
+  GOPROXY: https://proxy.golang.org,https://goproxy.io,https://goproxy.cn,direct
   GOSUMDB: sum.golang.org
-  GOPRIVATE: ""
-  GONOSUMDB: ""
-  GONOPROXY: ""
   # Increase timeouts for network operations
   GOFLAGS: -timeout=300s
 
-# Grant necessary permissions for the workflow
 permissions:
   contents: write
   security-events: write
@@ -34,10 +30,9 @@ permissions:
   pull-requests: read
 
 jobs:
-  # Build for multiple platforms
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 30
     outputs:
       VERSION: ${{ steps.version.outputs.VERSION }}
     strategy:
@@ -66,219 +61,44 @@ jobs:
       with:
         fetch-depth: 0
 
-    - name: Debug checkout
-      run: |
-        echo "=== Checkout Debug Information ==="
-        echo "Current directory: $(pwd)"
-        echo "GitHub context:"
-        echo "  Repository: ${{ github.repository }}"
-        echo "  Repository name: ${{ github.event.repository.name }}"
-        echo "  Repository full name: ${{ github.event.repository.full_name }}"
-        echo "  Working directory: ${{ github.workspace }}"
-        echo "  Event name: ${{ github.event_name }}"
-        echo "  Ref: ${{ github.ref }}"
-        echo "  SHA: ${{ github.sha }}"
-        echo "Git status:"
-        git status --porcelain
-        echo "Git branch: $(git branch --show-current)"
-        echo "Git commit: $(git rev-parse HEAD)"
-        echo "Git remote origin:"
-        git remote -v
-        echo "Repository contents:"
-        ls -la
-        echo "Go.mod file check:"
-        if [ -f go.mod ]; then
-          echo "✅ go.mod found"
-          echo "Size: $(wc -l < go.mod) lines"
-          echo "First few lines:"
-          head -5 go.mod
-        else
-          echo "❌ go.mod NOT found"
-        fi
-        echo "================================"
-
-    - name: Verify repository structure
-      run: |
-        echo "Repository structure verification..."
-        echo "Current directory: $(pwd)"
-        echo "Git status:"
-        git status
-        echo "Git remote:"
-        git remote -v
-        echo "Directory contents:"
-        ls -la
-        echo "Go.mod exists: $(test -f go.mod && echo 'YES' || echo 'NO')"
-        echo "Main.go exists: $(test -f main.go && echo 'YES' || echo 'NO')"
-        echo "Go.mod contents (first 10 lines):"
-        head -10 go.mod || echo "go.mod not found or not readable"
-        echo "Working directory: $PWD"
-        echo "Git root: $(git rev-parse --show-toplevel)"
-        
-        # Verify critical files exist
-        echo "=== Critical File Verification ==="
-        for file in go.mod main.go go.sum; do
-          if [ -f "$file" ]; then
-            echo "✅ $file exists ($(wc -l < "$file") lines)"
-          else
-            echo "❌ $file missing"
-          fi
-        done
-        
-        # Check if this looks like a Go module
-        if [ -f go.mod ] && [ -f main.go ]; then
-          echo "✅ Repository appears to be a valid Go module"
-        else
-          echo "❌ Repository does not appear to be a valid Go module"
-          exit 1
-        fi
-        
-        # Verify we're in the expected repository
-        echo "=== Repository Identity Verification ==="
-        expected_repo="${{ github.repository }}"
-        actual_repo=$(git remote get-url origin | sed 's/.*github\.com[:/]\([^/]*\/[^/]*\)\.git.*/\1/')
-        echo "Expected repository: $expected_repo"
-        echo "Actual repository: $actual_repo"
-        if [ "$expected_repo" = "$actual_repo" ]; then
-          echo "✅ Repository matches expected value"
-        else
-          echo "❌ Repository mismatch! Expected: $expected_repo, Got: $actual_repo"
-        fi
-
     - name: Set up Go
       uses: actions/setup-go@v4
       with:
         go-version: '1.24.5'
         cache: true
-        check-latest: false
 
-    - name: Verify Go installation and fix toolchain issues
+    - name: Verify Go module with retry
       run: |
-        echo "Verifying Go installation..."
-        go version
-        go env GOROOT
-        go env GOPATH
-        
-        # Check if Go toolchain is properly installed
-        echo "Checking Go toolchain..."
-        if [ -d "$(go env GOROOT)/pkg/tool" ]; then
-          echo "Toolchain directory exists"
-          ls -la "$(go env GOROOT)/pkg/tool/" || echo "Cannot list toolchain directory"
-        else
-          echo "Toolchain directory missing, attempting to fix..."
-          # Try to reinstall Go if toolchain is corrupted
-          go install -a std
-        fi
-        
-        # Verify critical Go commands work
-        echo "Testing Go commands..."
-        go help > /dev/null && echo "✅ go help works" || echo "❌ go help failed"
-        go env > /dev/null && echo "✅ go env works" || echo "❌ go env failed"
-        
-        # Clear any existing module cache that might be corrupted
-        echo "Clearing module cache..."
-        go clean -modcache
-        go clean -cache
-        
-        echo "Go installation verification completed"
-
-    - name: Clear Go cache and retry setup if needed
-      if: failure()
-      run: |
-        echo "Go setup failed, clearing cache and retrying..."
-        rm -rf $GITHUB_WORKSPACE/.go
-        rm -rf $GITHUB_WORKSPACE/go.sum
-        go clean -cache -modcache -testcache
-        go mod download
-        go mod verify
-
-    - name: Initialize Go module
-      run: |
-        echo "Initializing Go module..."
-        echo "Current directory: $(pwd)"
-        echo "Directory contents:"
-        ls -la
-        echo "Go.mod exists: $(test -f go.mod && echo 'YES' || echo 'NO')"
-        echo "Go.mod contents:"
-        cat go.mod || echo "Cannot read go.mod"
-        echo "Go version: $(go version)"
-        echo "Go env GOPATH: $(go env GOPATH)"
-        echo "Go env GOMOD: $(go env GOMOD)"
-        
-        # Ensure we're in the right directory
         if [ ! -f go.mod ]; then
-          echo "ERROR: go.mod not found in current directory"
-          echo "Current directory: $(pwd)"
-          echo "Directory contents:"
-          ls -la
+          echo "ERROR: go.mod not found"
           exit 1
         fi
         
-        # Clear any existing cache issues
-        go clean -cache -modcache -testcache
-        
-        # Now proceed with Go module operations with retry logic
-        for i in {1..3}; do
-          echo "Attempt $i: Running go mod tidy..."
-          if go mod tidy; then
-            echo "go mod tidy succeeded on attempt $i"
+        # Retry logic for network issues
+        for attempt in {1..3}; do
+          echo "Attempt $attempt: Verifying Go module..."
+          
+          if go mod download && go mod verify; then
+            echo "Go module verification successful"
             break
           else
-            echo "go mod tidy failed on attempt $i"
-            if [ $i -eq 3 ]; then
-              echo "All attempts failed, exiting"
-              exit 1
+            echo "Attempt $attempt failed"
+            if [ $attempt -eq 3 ]; then
+              echo "All attempts failed. Trying with direct proxy..."
+              # Fallback to direct proxy
+              export GOPROXY=direct
+              if go mod download && go mod verify; then
+                echo "Go module verification successful with direct proxy"
+                break
+              else
+                echo "All verification attempts failed"
+                exit 1
+              fi
             fi
-            echo "Waiting 5 seconds before retry..."
-            sleep 5
+            echo "Waiting 10 seconds before retry..."
+            sleep 10
           fi
         done
-        
-        for i in {1..3}; do
-          echo "Attempt $i: Running go mod download..."
-          if go mod download; then
-            echo "go mod download succeeded on attempt $i"
-            break
-          else
-            echo "go mod download failed on attempt $i"
-            if [ $i -eq 3 ]; then
-              echo "All attempts failed, exiting"
-              exit 1
-            fi
-            echo "Waiting 5 seconds before retry..."
-            sleep 5
-          fi
-        done
-        
-        echo "Go module status:"
-        go mod verify
-        echo "Go module info:"
-        go list -m
-
-    - name: Pre-build cleanup and verification
-      run: |
-        echo "Performing pre-build cleanup..."
-        
-        # Clear any remaining cache issues
-        go clean -cache -modcache -testcache
-        
-        # Verify Go toolchain integrity
-        echo "Verifying Go toolchain..."
-        go version
-        go env GOROOT
-        go env GOPATH
-        
-        # Check for any corrupted toolchain files
-        if [ -d "$(go env GOROOT)/pkg/tool" ]; then
-          echo "Checking toolchain files..."
-          ls -la "$(go env GOROOT)/pkg/tool/$(go env GOOS)_$(go env GOARCH)/" || echo "Toolchain directory not accessible"
-        fi
-        
-        # Final module verification
-        echo "Final module verification..."
-        go mod verify
-        go mod download
-        
-        echo "Pre-build cleanup completed successfully"
 
     - name: Determine version
       id: version
@@ -291,71 +111,39 @@ jobs:
           echo "VERSION=v0.0.0-$(date +%Y%m%d)-$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
         fi
 
-    - name: Verify Go module setup
-      run: |
-        echo "Verifying Go module setup..."
-        echo "Current directory: $(pwd)"
-        echo "Directory contents:"
-        ls -la
-        echo "Go version: $(go version)"
-        echo "Go module info:"
-        go mod why .
-        echo "Go module graph:"
-        go mod graph | head -20
-
     - name: Build Go binary
       env:
         GOOS: ${{ matrix.goos }}
         GOARCH: ${{ matrix.goarch }}
         CGO_ENABLED: 0
-        GOPATH: ${{ github.workspace }}/.go
       run: |
-        echo "Current directory: $(pwd)"
-        echo "Directory contents:"
-        ls -la
-        echo "Go version: $(go version)"
-        echo "Go env:"
-        go env
         echo "Building for ${{ matrix.os }}/${{ matrix.arch }}..."
         
-        # Final verification before build
-        echo "Final verification before build..."
-        go mod verify
-        go mod download
-        
-        # Check module status
-        echo "Module status:"
-        go list -m all | head -10
-        
-        # Try building with explicit module path and retry logic
-        for i in {1..3}; do
-          echo "Build attempt $i for ${{ matrix.os }}/${{ matrix.arch }}..."
+        # Build binary with retry logic
+        for attempt in {1..3}; do
+          echo "Build attempt $attempt for ${{ matrix.os }}/${{ matrix.arch }}..."
           
-          if go build -mod=mod -ldflags="-s -w -X main.Version=${{ steps.version.outputs.VERSION }}" \
-                     -o "timeseriesdb-${{ matrix.os }}-${{ matrix.arch }}" \
-                     -a -installsuffix cgo .; then
-            echo "Build succeeded on attempt $i"
+          if go build -ldflags="-s -w -X main.Version=${{ steps.version.outputs.VERSION }}" \
+                     -o "timeseriesdb-${{ matrix.os }}-${{ matrix.arch }}" .; then
+            echo "Build successful"
             break
           else
-            echo "Build failed on attempt $i"
-            if [ $i -eq 3 ]; then
-              echo "All build attempts failed, exiting"
+            echo "Build attempt $attempt failed"
+            if [ $attempt -eq 3 ]; then
+              echo "All build attempts failed"
               exit 1
             fi
-            echo "Cleaning and retrying in 5 seconds..."
+            echo "Cleaning cache and retrying in 5 seconds..."
             go clean -cache
             sleep 5
           fi
         done
         
-        # Verify the binary was created
+        # Verify binary was created
         if [ ! -f "timeseriesdb-${{ matrix.os }}-${{ matrix.arch }}" ]; then
           echo "ERROR: Binary was not created"
           exit 1
         fi
-        
-        echo "Binary created successfully:"
-        ls -la "timeseriesdb-${{ matrix.os }}-${{ matrix.arch }}"
         
         # Create archive
         if [ "${{ matrix.os }}" = "windows" ]; then
@@ -363,11 +151,8 @@ jobs:
         else
           tar -czf "timeseriesdb-${{ matrix.os }}-${{ matrix.arch }}.tar.gz" "timeseriesdb-${{ matrix.os }}-${{ matrix.arch }}"
         fi
-        
-        echo "Archive created successfully:"
-        ls -la "timeseriesdb-${{ matrix.os }}-${{ matrix.arch }}".*
 
-    - name: Upload Go binary artifacts
+    - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
         name: timeseriesdb-${{ matrix.os }}-${{ matrix.arch }}
@@ -375,10 +160,10 @@ jobs:
           timeseriesdb-${{ matrix.os }}-${{ matrix.arch }}
           timeseriesdb-${{ matrix.os }}-${{ matrix.arch }}.*
 
-  # Create release with all artifacts
   release:
     needs: build
     runs-on: ubuntu-latest
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
     
     steps:
     - name: Checkout code
@@ -388,15 +173,6 @@ jobs:
       uses: actions/download-artifact@v4
       with:
         path: artifacts
-
-    - name: Debug artifacts
-      run: |
-        echo "=== Artifacts Debug Information ==="
-        echo "Current directory: $(pwd)"
-        echo "Artifacts directory contents:"
-        find artifacts -type f -name "timeseriesdb-*" | sort
-        echo "Total artifacts found: $(find artifacts -type f -name "timeseriesdb-*" | wc -l)"
-        echo "================================"
 
     - name: Create release
       uses: softprops/action-gh-release@v1
@@ -412,7 +188,6 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  # Test the built binaries
   test-binaries:
     needs: build
     runs-on: ubuntu-latest
@@ -428,33 +203,14 @@ jobs:
         name: timeseriesdb-linux-amd64
         path: ./bin
 
-    - name: Make binary executable
-      run: chmod +x ./bin/timeseriesdb-linux-amd64
-
     - name: Test binary
       run: |
+        chmod +x ./bin/timeseriesdb-linux-amd64
+        
+        # Test basic functionality
         echo "Testing binary..."
-        echo "Binary path: $(pwd)/bin/timeseriesdb-linux-amd64"
-        echo "Binary exists: $(test -f ./bin/timeseriesdb-linux-amd64 && echo 'YES' || echo 'NO')"
-        echo "Binary size: $(ls -lh ./bin/timeseriesdb-linux-amd64 2>/dev/null || echo 'N/A')"
-        
-        # Verify binary is executable
-        if [ ! -x "./bin/timeseriesdb-linux-amd64" ]; then
-          echo "ERROR: Binary is not executable"
-          exit 1
-        fi
-        
-        # Test with timeout to prevent hanging
-        echo "Testing --help command..."
-        timeout 10s ./bin/timeseriesdb-linux-amd64 --help 2>&1 || echo "Binary help command completed (exit code: $?)"
-        
-        # Test version if available
-        echo "Testing --version command..."
-        timeout 10s ./bin/timeseriesdb-linux-amd64 --version 2>&1 || echo "Binary version command completed (exit code: $?)"
-        
-        # Test basic functionality without hanging
-        echo "Testing basic binary execution..."
-        timeout 5s ./bin/timeseriesdb-linux-amd64 2>&1 || echo "Binary basic execution completed (exit code: $?)"
+        timeout 10s ./bin/timeseriesdb-linux-amd64 --help 2>&1 || echo "Help command completed"
+        timeout 10s ./bin/timeseriesdb-linux-amd64 --version 2>&1 || echo "Version command completed"
         
         echo "Binary test completed successfully"
 
