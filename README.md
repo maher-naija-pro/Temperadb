@@ -1,9 +1,9 @@
 # TimeSeriesDB
 
-[![Build Status](https://img.shields.io/badge/build-passing-brightgreen?style=flat-square)](https://github.com/yourusername/timeseriesdb/actions)
-[![Coverage](https://img.shields.io/badge/coverage-0%25-brightgreen?style=flat-square)](https://github.com/yourusername/timeseriesdb/actions)
-[![Go Version](https://img.shields.io/badge/go-1.20+-blue?style=flat-square)](https://golang.org/)
-[![License](https://img.shields.io/badge/license-AGPL%20v3.0-red?style=flat-square)](LICENSE)
+![Build Status](https://img.shields.io/badge/build-passing-brightgreen?style=flat-square)
+![Coverage](https://img.shields.io/badge/coverage-0%25-brightgreen?style=flat-square)
+![Go Version](https://img.shields.io/badge/go-1.20+-blue?style=flat-square)
+![License](https://img.shields.io/badge/license-AGPL%20v3.0-red?style=flat-square)
 
 A lightweight, high-performance time series database written in Go that accepts InfluxDB line protocol for data ingestion.
 
