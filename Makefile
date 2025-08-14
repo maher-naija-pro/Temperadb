@@ -203,6 +203,9 @@ test-envvars:
 test-api:
 	@echo "Testing internal/api module..."
 	$(GOCMD) test -v ./internal/api/...
+	@echo "Cleaning up test data..."
+	rm -rf internal/api/http/test_data_register/
+	@echo "Test data cleanup completed"
 
 .PHONY: test-types
 test-types:
