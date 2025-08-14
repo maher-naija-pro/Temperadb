@@ -4,9 +4,9 @@ ARG GOOS=linux
 ARG GOARCH=amd64
 
 # Build stage
-FROM golang:1.20-alpine AS builder
+FROM golang:1.24-alpine AS builder
 
-# Install build dependencies
+# Install build dependenciesgs
 RUN apk add --no-cache git ca-certificates tzdata
 
 # Set working directory
