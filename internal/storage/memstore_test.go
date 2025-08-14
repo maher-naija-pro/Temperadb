@@ -33,7 +33,7 @@ func TestNewMemStore(t *testing.T) {
 		mockWAL := &MockWAL{}
 		maxSize := int64(1024 * 1024) // 1MB
 
-		memStore := NewMemStore(maxSize, mockWAL, nil)
+		memStore := NewMemStore(maxSize, mockWAL, nil, nil, "test_shard")
 
 		if memStore == nil {
 			t.Fatal("MemStore should not be nil")
@@ -65,7 +65,7 @@ func TestNewMemStore(t *testing.T) {
 			return nil
 		}
 
-		memStore := NewMemStore(maxSize, mockWAL, onFlush)
+		memStore := NewMemStore(maxSize, mockWAL, onFlush, nil, "test_shard")
 
 		if memStore.onFlush == nil {
 			t.Error("onFlush should be set")
@@ -80,7 +80,7 @@ func TestNewMemStore(t *testing.T) {
 func TestMemStoreWrite(t *testing.T) {
 	t.Run("write single point", func(t *testing.T) {
 		mockWAL := &MockWAL{}
-		memStore := NewMemStore(1024*1024, mockWAL, nil)
+		memStore := NewMemStore(1024*1024, mockWAL, nil, nil, "test_shard")
 
 		point := DataPoint{
 			Timestamp: time.Now(),
@@ -118,7 +118,7 @@ func TestMemStoreWrite(t *testing.T) {
 
 	t.Run("write multiple points", func(t *testing.T) {
 		mockWAL := &MockWAL{}
-		memStore := NewMemStore(1024*1024, mockWAL, nil)
+		memStore := NewMemStore(1024*1024, mockWAL, nil, nil, "test_shard")
 
 		points := []DataPoint{
 			{Timestamp: time.Now(), Value: 1.0},
@@ -145,7 +145,7 @@ func TestMemStoreWrite(t *testing.T) {
 
 	t.Run("write to multiple series", func(t *testing.T) {
 		mockWAL := &MockWAL{}
-		memStore := NewMemStore(1024*1024, mockWAL, nil)
+		memStore := NewMemStore(1024*1024, mockWAL, nil, nil, "test_shard")
 
 		// Write to first series
 		err := memStore.Write("series1", []DataPoint{{Timestamp: time.Now(), Value: 1.0}})
@@ -175,7 +175,7 @@ func TestMemStoreWrite(t *testing.T) {
 		mockWAL := &MockWAL{
 			errors: []error{fmt.Errorf("WAL write failed")},
 		}
-		memStore := NewMemStore(1024*1024, mockWAL, nil)
+		memStore := NewMemStore(1024*1024, mockWAL, nil, nil, "test_shard")
 
 		point := DataPoint{
 			Timestamp: time.Now(),
@@ -195,7 +195,7 @@ func TestMemStoreWrite(t *testing.T) {
 func TestMemStoreRead(t *testing.T) {
 	t.Run("read from empty memstore", func(t *testing.T) {
 		mockWAL := &MockWAL{}
-		memStore := NewMemStore(1024*1024, mockWAL, nil)
+		memStore := NewMemStore(1024*1024, mockWAL, nil, nil, "test_shard")
 
 		points, err := memStore.Read("nonexistent_series", time.Now(), time.Now().Add(time.Hour))
 		if err != nil {
@@ -208,7 +208,7 @@ func TestMemStoreRead(t *testing.T) {
 
 	t.Run("read from populated memstore", func(t *testing.T) {
 		mockWAL := &MockWAL{}
-		memStore := NewMemStore(1024*1024, mockWAL, nil)
+		memStore := NewMemStore(1024*1024, mockWAL, nil, nil, "test_shard")
 
 		now := time.Now()
 		points := []DataPoint{
@@ -250,7 +250,7 @@ func TestMemStoreRead(t *testing.T) {
 
 	t.Run("read with exact time boundaries", func(t *testing.T) {
 		mockWAL := &MockWAL{}
-		memStore := NewMemStore(1024*1024, mockWAL, nil)
+		memStore := NewMemStore(1024*1024, mockWAL, nil, nil, "test_shard")
 
 		now := time.Now()
 		points := []DataPoint{
@@ -287,7 +287,7 @@ func TestMemStoreFlush(t *testing.T) {
 		}
 
 		// Create memstore with small max size to trigger flush
-		memStore := NewMemStore(100, mockWAL, onFlush)
+		memStore := NewMemStore(100, mockWAL, onFlush, nil, "test_shard")
 
 		// Write enough data to trigger flush
 		points := []DataPoint{
@@ -326,7 +326,7 @@ func TestMemStoreFlush(t *testing.T) {
 			return fmt.Errorf("flush failed")
 		}
 
-		memStore := NewMemStore(100, mockWAL, onFlush)
+		memStore := NewMemStore(100, mockWAL, onFlush, nil, "test_shard")
 
 		// Write enough points to trigger flush (each point is ~64 bytes, so 2 points will exceed 100 bytes)
 		points := []DataPoint{
@@ -352,7 +352,7 @@ func TestMemStoreFlush(t *testing.T) {
 			return nil
 		}
 
-		memStore := NewMemStore(1024*1024, mockWAL, onFlush)
+		memStore := NewMemStore(1024*1024, mockWAL, onFlush, nil, "test_shard")
 
 		// Force flush
 		err := memStore.ForceFlush()
@@ -369,7 +369,7 @@ func TestMemStoreFlush(t *testing.T) {
 func TestMemStoreGetters(t *testing.T) {
 	t.Run("get memtable", func(t *testing.T) {
 		mockWAL := &MockWAL{}
-		memStore := NewMemStore(1024*1024, mockWAL, nil)
+		memStore := NewMemStore(1024*1024, mockWAL, nil, nil, "test_shard")
 
 		memTable := memStore.GetMemTable()
 		if memTable == nil {
@@ -382,7 +382,7 @@ func TestMemStoreGetters(t *testing.T) {
 
 	t.Run("get size", func(t *testing.T) {
 		mockWAL := &MockWAL{}
-		memStore := NewMemStore(1024*1024, mockWAL, nil)
+		memStore := NewMemStore(1024*1024, mockWAL, nil, nil, "test_shard")
 
 		// Initial size should be 0
 		size := memStore.GetSize()
@@ -412,7 +412,7 @@ func TestMemStoreGetters(t *testing.T) {
 func TestMemStoreSizeCalculation(t *testing.T) {
 	t.Run("size calculation with points", func(t *testing.T) {
 		mockWAL := &MockWAL{}
-		memStore := NewMemStore(1024*1024, mockWAL, nil)
+		memStore := NewMemStore(1024*1024, mockWAL, nil, nil, "test_shard")
 
 		// Each point is estimated to be 64 bytes
 		points := []DataPoint{
@@ -435,7 +435,7 @@ func TestMemStoreSizeCalculation(t *testing.T) {
 
 	t.Run("size calculation with multiple series", func(t *testing.T) {
 		mockWAL := &MockWAL{}
-		memStore := NewMemStore(1024*1024, mockWAL, nil)
+		memStore := NewMemStore(1024*1024, mockWAL, nil, nil, "test_shard")
 
 		// Write to multiple series
 		series1Points := []DataPoint{{Timestamp: time.Now(), Value: 1.0}}

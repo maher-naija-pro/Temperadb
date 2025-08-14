@@ -1,0 +1,8 @@
+---
+description: "Clean terminal command"
+globs: ["Makefile"]
+alwaysApply: true
+prepend: |
+  @clear
+
+---

@@ -67,6 +67,16 @@ func (p *Parser) Bool(key string, defaultValue bool) bool {
 	return defaultValue
 }
 
+// Float64 parses a float64 environment variable with a default value
+func (p *Parser) Float64(key string, defaultValue float64) float64 {
+	if value := os.Getenv(key); value != "" {
+		if floatValue, err := strconv.ParseFloat(strings.TrimSpace(value), 64); err == nil {
+			return floatValue
+		}
+	}
+	return defaultValue
+}
+
 // Duration parses a duration environment variable with a default value
 // Expects values in seconds (e.g., "30" for 30 seconds)
 func (p *Parser) Duration(key string, defaultValue time.Duration) time.Duration {

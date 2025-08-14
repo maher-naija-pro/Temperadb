@@ -2,6 +2,7 @@ package config
 
 import (
 	"strconv"
+	"time"
 
 	"github.com/joho/godotenv"
 )
@@ -12,6 +13,22 @@ type Config struct {
 	Storage  StorageConfig
 	Logging  LoggingConfig
 	Database DatabaseConfig
+}
+
+// DatabaseConfig holds database-related configuration
+type DatabaseConfig struct {
+	MaxConnections int
+	ConnectionTTL  time.Duration
+	QueryTimeout   time.Duration
+}
+
+// NewDatabaseConfig creates a new DatabaseConfig with default values
+func NewDatabaseConfig() DatabaseConfig {
+	return DatabaseConfig{
+		MaxConnections: 100,
+		ConnectionTTL:  5 * time.Minute,
+		QueryTimeout:   30 * time.Second,
+	}
 }
 
 // Load loads configuration from environment variables and .env file
@@ -48,12 +65,13 @@ func (c *Config) String() string {
 		"  MaxFileSize: " + strconv.FormatInt(c.Storage.MaxFileSize, 10) + "\n" +
 		"  BackupDir: " + c.Storage.BackupDir + "\n" +
 		"  Compression: " + strconv.FormatBool(c.Storage.Compression) + "\n" +
-		"Logging:\n" +
-		"  Level: " + c.Logging.Level + "\n" +
-		"  Format: " + c.Logging.Format + "\n" +
-		"  Output: " + c.Logging.Output + "\n" +
 		"Database:\n" +
 		"  MaxConnections: " + strconv.Itoa(c.Database.MaxConnections) + "\n" +
 		"  ConnectionTTL: " + c.Database.ConnectionTTL.String() + "\n" +
-		"  QueryTimeout: " + c.Database.QueryTimeout.String()
+		"  QueryTimeout: " + c.Database.QueryTimeout.String() + "\n" +
+		"Logging:\n" +
+		"  Level: " + c.Logging.Level + "\n" +
+		"  Format: " + c.Logging.Format + "\n" +
+		"  Output: " + c.Logging.Output + "\n"
+
 }

@@ -3,7 +3,12 @@ package storage
 import (
 	"testing"
 	"time"
+	"timeseriesdb/internal/logger"
 )
+
+func init() {
+	logger.Init()
+}
 
 func TestDataPoint(t *testing.T) {
 	t.Run("DataPoint creation", func(t *testing.T) {

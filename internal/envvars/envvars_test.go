@@ -81,6 +81,34 @@ func TestParser_Int64(t *testing.T) {
 	}
 }
 
+func TestParser_Float64(t *testing.T) {
+	parser := NewParser()
+
+	// Test with default value
+	result := parser.Float64("NONEXISTENT_KEY", 3.14)
+	if result != 3.14 {
+		t.Errorf("Expected 3.14, got %f", result)
+	}
+
+	// Test with valid environment variable
+	os.Setenv("TEST_FLOAT64", "2.718")
+	defer os.Unsetenv("TEST_FLOAT64")
+
+	result = parser.Float64("TEST_FLOAT64", 3.14)
+	if result != 2.718 {
+		t.Errorf("Expected 2.718, got %f", result)
+	}
+
+	// Test with invalid environment variable (should fall back to default)
+	os.Setenv("TEST_FLOAT64_INVALID", "not_a_number")
+	defer os.Unsetenv("TEST_FLOAT64_INVALID")
+
+	result = parser.Float64("TEST_FLOAT64_INVALID", 3.14)
+	if result != 3.14 {
+		t.Errorf("Expected 3.14, got %f", result)
+	}
+}
+
 func TestParser_Bool(t *testing.T) {
 	parser := NewParser()
 
@@ -91,7 +119,7 @@ func TestParser_Bool(t *testing.T) {
 	}
 
 	// Test with valid true values
-	trueValues := []string{"true", "TRUE", "True", "1", "yes", "YES", "Yes"}
+	trueValues := []string{"true", "TRUE", "True", "1", "yes", "YES", "Yes", "on", "ON", "On", "enabled", "ENABLED", "Enabled"}
 	for _, value := range trueValues {
 		os.Setenv("TEST_BOOL", value)
 		result = parser.Bool("TEST_BOOL", false)
@@ -101,7 +129,7 @@ func TestParser_Bool(t *testing.T) {
 	}
 
 	// Test with valid false values
-	falseValues := []string{"false", "FALSE", "False", "0", "no", "NO", "No"}
+	falseValues := []string{"false", "FALSE", "False", "0", "no", "NO", "No", "off", "OFF", "Off", "disabled", "DISABLED", "Disabled"}
 	for _, value := range falseValues {
 		os.Setenv("TEST_BOOL", value)
 		result = parser.Bool("TEST_BOOL", true)
@@ -188,6 +216,15 @@ func TestParser_FileSize(t *testing.T) {
 		t.Errorf("Expected %d, got %d", 1024*1024*1024, result)
 	}
 
+	// Test with TB
+	os.Setenv("TEST_SIZE_TB", "1TB")
+	defer os.Unsetenv("TEST_SIZE_TB")
+
+	result = parser.FileSize("TEST_SIZE_TB", 1024)
+	if result != 1024*1024*1024*1024 {
+		t.Errorf("Expected %d, got %d", 1024*1024*1024*1024, result)
+	}
+
 	// Test with invalid format (should fall back to default)
 	os.Setenv("TEST_SIZE_INVALID", "invalid")
 	defer os.Unsetenv("TEST_SIZE_INVALID")
@@ -196,6 +233,66 @@ func TestParser_FileSize(t *testing.T) {
 	if result != 1024 {
 		t.Errorf("Expected 1024, got %d", result)
 	}
+}
+
+func TestParser_RequiredString(t *testing.T) {
+	parser := NewParser()
+
+	// Test with existing key
+	os.Setenv("TEST_REQUIRED_STRING", "required_value")
+	defer os.Unsetenv("TEST_REQUIRED_STRING")
+
+	result := parser.RequiredString("TEST_REQUIRED_STRING")
+	if result != "required_value" {
+		t.Errorf("Expected 'required_value', got '%s'", result)
+	}
+
+	// Test panic when key doesn't exist
+	defer func() {
+		if r := recover(); r == nil {
+			t.Error("Expected panic for non-existent required string key")
+		}
+	}()
+
+	parser.RequiredString("NONEXISTENT_REQUIRED_STRING")
+}
+
+func TestParser_RequiredInt(t *testing.T) {
+	parser := NewParser()
+
+	// Test with existing valid key
+	os.Setenv("TEST_REQUIRED_INT", "42")
+	defer os.Unsetenv("TEST_REQUIRED_INT")
+
+	result := parser.RequiredInt("TEST_REQUIRED_INT")
+	if result != 42 {
+		t.Errorf("Expected 42, got %d", result)
+	}
+
+	// Test panic when key doesn't exist
+	defer func() {
+		if r := recover(); r == nil {
+			t.Error("Expected panic for non-existent required int key")
+		}
+	}()
+
+	parser.RequiredInt("NONEXISTENT_REQUIRED_INT")
+}
+
+func TestParser_RequiredInt_InvalidValue(t *testing.T) {
+	parser := NewParser()
+
+	// Test panic when key exists but value is invalid
+	os.Setenv("TEST_REQUIRED_INT_INVALID", "not_a_number")
+	defer os.Unsetenv("TEST_REQUIRED_INT_INVALID")
+
+	defer func() {
+		if r := recover(); r == nil {
+			t.Error("Expected panic for invalid required int value")
+		}
+	}()
+
+	parser.RequiredInt("TEST_REQUIRED_INT_INVALID")
 }
 
 func TestParser_Has(t *testing.T) {

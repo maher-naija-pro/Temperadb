@@ -20,7 +20,24 @@ TimeSeriesDB is a simple yet powerful time series database designed for:
 
 ## Quick Start
 
-### 1. Install & Build
+### 1. Using Docker (Recommended)
+
+```bash
+# Pull the latest image
+docker pull ghcr.io/maher-naija-pro/my-timeserie:latest
+
+# Run the container
+docker run -d \
+  --name timeseriesdb \
+  -p 8080:8080 \
+  -v $(pwd)/data:/app/data \
+  ghcr.io/maher-naija-pro/my-timeserie:latest
+
+# Check if it's running
+curl http://localhost:8080/health
+```
+
+### 2. Install & Build from Source
 
 ```bash
 git clone <your-repo-url>
@@ -84,6 +101,65 @@ measurement[,tag_key=tag_value...] field_key=field_value[,field_key=field_value.
 - **`POST /write`** - Write time series data
 - **`GET /health`** - Health check
 - **`GET /metrics`** - Prometheus metrics
+
+## Docker
+
+### Available Images
+
+TimeSeriesDB Docker images are automatically built and published to GitHub Container Registry:
+
+- **Latest:** `ghcr.io/maher-naija-pro/my-timeserie:latest`
+- **Tagged releases:** `ghcr.io/maher-naija-pro/my-timeserie:v1.0.0`
+- **Main branch:** `ghcr.io/maher-naija-pro/my-timeserie:main`
+
+### Running with Docker
+
+```bash
+# Basic run
+docker run -d \
+  --name timeseriesdb \
+  -p 8080:8080 \
+  ghcr.io/maher-naija-pro/my-timeserie:latest
+
+# With persistent data storage
+docker run -d \
+  --name timeseriesdb \
+  -p 8080:8080 \
+  -v $(pwd)/data:/app/data \
+  -e DATA_FILE=/app/data/data.tsv \
+  ghcr.io/maher-naija-pro/my-timeserie:latest
+
+# With custom configuration
+docker run -d \
+  --name timeseriesdb \
+  -p 8080:8080 \
+  -e PORT=9090 \
+  -e DATA_FILE=/app/data/custom.tsv \
+  ghcr.io/maher-naija-pro/my-timeserie:latest
+```
+
+### Docker Compose
+
+```yaml
+version: '3.8'
+services:
+  timeseriesdb:
+    image: ghcr.io/maher-naija-pro/my-timeserie:latest
+    container_name: timeseriesdb
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data:/app/data
+    environment:
+      - DATA_FILE=/app/data/data.tsv
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+```
 
 ## Documentation
 

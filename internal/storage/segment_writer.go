@@ -53,6 +53,14 @@ func NewSegmentWriter(config SegmentWriterConfig) (*SegmentWriter, error) {
 
 // WriteMemTable writes a memtable to an immutable segment
 func (sw *SegmentWriter) WriteMemTable(memTable *MemTable) (*Segment, error) {
+	if memTable == nil {
+		return nil, fmt.Errorf("memtable cannot be nil")
+	}
+
+	if memTable.Data == nil {
+		return nil, fmt.Errorf("memtable data cannot be nil")
+	}
+
 	sw.mu.Lock()
 	defer sw.mu.Unlock()
 

@@ -234,8 +234,8 @@ func TestWriteHandler_Handle_RequestBodyReadError(t *testing.T) {
 	handler.Handle(w, req)
 
 	// Check response
-	if w.Code != http.StatusInternalServerError {
-		t.Errorf("Expected status 500, got %d", w.Code)
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("Expected status 400, got %d", w.Code)
 	}
 }
 
@@ -375,7 +375,7 @@ func TestWriteHandler_Handle_MultipleLines(t *testing.T) {
 
 	// Multiple lines of valid line protocol data
 	multiLineData := "cpu,host=server01,region=us-west value=0.64 1434055562000000000\n" +
-		"memory,host=server01,region=us-west used=1234567 1434055562000001"
+		"memory,host=server01,region=us-west used=1234567 1434055562000001000"
 	req := httptest.NewRequest("POST", "/write", strings.NewReader(multiLineData))
 	req.ContentLength = int64(len(multiLineData))
 
@@ -528,8 +528,8 @@ func TestWriteHandler_Handle_StorageWriteError(t *testing.T) {
 
 	// Multiple lines of valid line protocol data to test individual write errors
 	multiLineData := "cpu,host=server01,region=us-west value=0.64 1434055562000000000\n" +
-		"memory,host=server01,region=us-west used=1234567 1434055562000001\n" +
-		"disk,host=server01,region=us-west free=987654321 1434055562000002"
+		"memory,host=server01,region=us-west used=1234567 1434055562000001000\n" +
+		"disk,host=server01,region=us-west free=987654321 1434055562000002000"
 	req := httptest.NewRequest("POST", "/write", strings.NewReader(multiLineData))
 	req.ContentLength = int64(len(multiLineData))
 
@@ -905,8 +905,8 @@ func TestWriteHandler_Integration_WithRealStorage(t *testing.T) {
 	// Test multiple valid writes
 	testData := []string{
 		"cpu,host=server01,region=us-west value=0.64 1434055562000000000",
-		"memory,host=server01,region=us-west used=1234567 1434055562000001",
-		"disk,host=server01,region=us-west free=987654321 1434055562000002",
+		"memory,host=server01,region=us-west used=1234567 1434055562000001000",
+		"disk,host=server01,region=us-west free=987654321 1434055562000002000",
 	}
 
 	for i, data := range testData {

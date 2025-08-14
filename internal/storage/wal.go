@@ -21,12 +21,14 @@ type WAL struct {
 	currentSize int64
 	sequenceNum uint64
 	closed      bool
+	metrics     *StorageMetrics
 }
 
 // WALConfig holds configuration for WAL
 type WALConfig struct {
 	Path        string
 	MaxFileSize int64
+	Metrics     *StorageMetrics
 }
 
 // NewWAL creates a new Write-Ahead Log
@@ -57,6 +59,13 @@ func NewWAL(config WALConfig) (*WAL, error) {
 		currentSize: stat.Size(),
 		sequenceNum: uint64(time.Now().UnixNano()),
 		closed:      false,
+		metrics:     config.Metrics,
+	}
+
+	// Update metrics if available
+	if wal.metrics != nil {
+		wal.metrics.RecordWALSize(wal.currentSize)
+		wal.metrics.RecordWALFileCount(1) // Single WAL file initially
 	}
 
 	return wal, nil
@@ -64,6 +73,8 @@ func NewWAL(config WALConfig) (*WAL, error) {
 
 // Write writes a WAL entry to the log
 func (w *WAL) Write(entry WALEntry) error {
+	startTime := time.Now()
+
 	w.mu.Lock()
 	defer w.mu.Unlock()
 
@@ -73,8 +84,15 @@ func (w *WAL) Write(entry WALEntry) error {
 
 	// Check if we need to rotate the file
 	if w.currentSize >= w.maxFileSize {
+		rotationStartTime := time.Now()
 		if err := w.rotateFile(); err != nil {
+			if w.metrics != nil {
+				w.metrics.RecordWALFileRotationComplete(rotationStartTime, err)
+			}
 			return fmt.Errorf("failed to rotate WAL file: %w", err)
+		}
+		if w.metrics != nil {
+			w.metrics.RecordWALFileRotationComplete(rotationStartTime, nil)
 		}
 	}
 
@@ -98,14 +116,24 @@ func (w *WAL) Write(entry WALEntry) error {
 		return fmt.Errorf("failed to write entry data: %w", err)
 	}
 
-	// Update size
-	w.currentSize += int64(4 + len(data))
+	// Update current size
+	w.currentSize += int64(4 + len(data)) // 4 bytes for length + data
+
+	// Update metrics
+	if w.metrics != nil {
+		w.metrics.RecordWALSize(w.currentSize)
+		w.metrics.RecordWALEntriesWritten(1)
+		w.metrics.RecordWALEntrySize(len(data))
+		w.metrics.RecordWALWriteLatency(time.Since(startTime))
+	}
 
 	return nil
 }
 
 // Flush flushes the WAL buffer to disk
 func (w *WAL) Flush() error {
+	startTime := time.Now()
+
 	w.mu.Lock()
 	defer w.mu.Unlock()
 
@@ -113,7 +141,18 @@ func (w *WAL) Flush() error {
 		return fmt.Errorf("WAL is closed")
 	}
 
-	return w.writer.Flush()
+	if err := w.writer.Flush(); err != nil {
+		return fmt.Errorf("failed to flush WAL buffer: %w", err)
+	}
+
+	// Update metrics
+	if w.metrics != nil {
+		// Record WAL flush operation and latency
+		WALFlushOperations.WithLabelValues("success").Inc()
+		WALFlushLatency.WithLabelValues().Observe(time.Since(startTime).Seconds())
+	}
+
+	return nil
 }
 
 // Close closes the WAL
@@ -140,23 +179,22 @@ func (w *WAL) Close() error {
 	return nil
 }
 
-// rotateFile rotates the WAL file when it reaches max size
+// rotateFile rotates the current WAL file and creates a new one
 func (w *WAL) rotateFile() error {
 	// Close current file
 	if err := w.writer.Flush(); err != nil {
-		return err
+		return fmt.Errorf("failed to flush WAL buffer before rotation: %w", err)
 	}
+
 	if err := w.file.Close(); err != nil {
-		return err
+		return fmt.Errorf("failed to close WAL file: %w", err)
 	}
 
 	// Rename current file with timestamp
-	timestamp := time.Now().Format("20060102-150405")
-	oldPath := w.path
-	newPath := fmt.Sprintf("%s.%s", w.path, timestamp)
-
-	if err := os.Rename(oldPath, newPath); err != nil {
-		return fmt.Errorf("failed to rename WAL file: %w", err)
+	timestamp := time.Now().Format("20060102-150405.000")
+	oldPath := w.path + "." + timestamp
+	if err := os.Rename(w.path, oldPath); err != nil {
+		return fmt.Errorf("failed to rename old WAL file: %w", err)
 	}
 
 	// Create new WAL file
@@ -168,6 +206,13 @@ func (w *WAL) rotateFile() error {
 	w.file = file
 	w.writer = bufio.NewWriter(file)
 	w.currentSize = 0
+	w.sequenceNum = uint64(time.Now().UnixNano())
+
+	// Update metrics
+	if w.metrics != nil {
+		w.metrics.RecordWALSize(0) // New file starts with 0 size
+		// Note: File count is managed externally since we don't track all files here
+	}
 
 	return nil
 }

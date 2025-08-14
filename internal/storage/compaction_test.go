@@ -4,7 +4,12 @@ import (
 	"fmt"
 	"testing"
 	"time"
+	"timeseriesdb/internal/logger"
 )
+
+func init() {
+	logger.Init()
+}
 
 // createTestSegmentReader creates a test segment reader
 func createTestSegmentReader(tempDir string) *SegmentReader {
@@ -38,7 +43,7 @@ func TestNewCompactionManager(t *testing.T) {
 			MaxConcurrent:       2,
 		}
 
-		manager := NewCompactionManager(config, reader, writer)
+		manager := NewCompactionManager(config, reader, writer, nil)
 
 		if manager == nil {
 			t.Fatal("CompactionManager should not be nil")
@@ -77,7 +82,7 @@ func TestNewCompactionManager(t *testing.T) {
 			MaxConcurrent:       1,
 		}
 
-		manager := NewCompactionManager(config, reader, writer)
+		manager := NewCompactionManager(config, reader, writer, nil)
 
 		// Check level configuration
 		for i, level := range manager.levels {
@@ -115,7 +120,7 @@ func TestCompactionManagerStartStop(t *testing.T) {
 			MaxConcurrent:       1,
 		}
 
-		manager := NewCompactionManager(config, reader, writer)
+		manager := NewCompactionManager(config, reader, writer, nil)
 
 		// Start manager
 		if err := manager.Start(); err != nil {
@@ -165,7 +170,7 @@ func TestAddSegment(t *testing.T) {
 			MaxConcurrent:       1,
 		}
 
-		manager := NewCompactionManager(config, reader, writer)
+		manager := NewCompactionManager(config, reader, writer, nil)
 
 		// Create segments of different sizes
 		smallSegment := &Segment{
@@ -246,7 +251,7 @@ func TestAddSegment(t *testing.T) {
 			MaxConcurrent:       1,
 		}
 
-		manager := NewCompactionManager(config, mockReader, mockWriter)
+		manager := NewCompactionManager(config, mockReader, mockWriter, nil)
 
 		// Start manager to enable compaction
 		if err := manager.Start(); err != nil {
@@ -296,7 +301,7 @@ func TestFindLevelForSegment(t *testing.T) {
 			MaxConcurrent:       1,
 		}
 
-		manager := NewCompactionManager(config, mockReader, mockWriter)
+		manager := NewCompactionManager(config, mockReader, mockWriter, nil)
 
 		// Test different segment sizes
 		testCases := []struct {
@@ -344,7 +349,7 @@ func TestShouldCompactLevel(t *testing.T) {
 			MaxConcurrent:       1,
 		}
 
-		manager := NewCompactionManager(config, mockReader, mockWriter)
+		manager := NewCompactionManager(config, mockReader, mockWriter, nil)
 
 		// Level 0 should not need compaction initially
 		if manager.shouldCompactLevel(0) {
@@ -393,7 +398,7 @@ func TestGetLevelStats(t *testing.T) {
 			MaxConcurrent:       1,
 		}
 
-		manager := NewCompactionManager(config, mockReader, mockWriter)
+		manager := NewCompactionManager(config, mockReader, mockWriter, nil)
 
 		// Add some segments to level 0
 		for i := 0; i < 3; i++ {
@@ -463,7 +468,7 @@ func TestForceCompaction(t *testing.T) {
 			MaxConcurrent:       1,
 		}
 
-		manager := NewCompactionManager(config, mockReader, mockWriter)
+		manager := NewCompactionManager(config, mockReader, mockWriter, nil)
 
 		// Add segments to level 0
 		for i := 0; i < 3; i++ {
@@ -516,7 +521,7 @@ func TestForceCompaction(t *testing.T) {
 			MaxConcurrent:       1,
 		}
 
-		manager := NewCompactionManager(config, mockReader, mockWriter)
+		manager := NewCompactionManager(config, mockReader, mockWriter, nil)
 
 		// Try to force compaction of invalid level
 		if err := manager.ForceCompaction(-1); err == nil {
@@ -542,7 +547,7 @@ func TestForceCompaction(t *testing.T) {
 			MaxConcurrent:       1,
 		}
 
-		manager := NewCompactionManager(config, mockReader, mockWriter)
+		manager := NewCompactionManager(config, mockReader, mockWriter, nil)
 
 		// Force compaction of empty level
 		if err := manager.ForceCompaction(0); err != nil {

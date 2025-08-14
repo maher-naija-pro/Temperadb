@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"fmt"
+	"io"
 	"net/http"
 	"timeseriesdb/internal/ingestion"
 	"timeseriesdb/internal/logger"
@@ -37,14 +38,19 @@ func (h *WriteHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	lines := make([]byte, r.ContentLength)
-	_, err := r.Body.Read(lines)
+	n, err := io.ReadFull(r.Body, lines)
 	if err != nil {
 		logger.Errorf("Failed to read request body: %v", err)
-		h.WriteError(w, http.StatusInternalServerError, "Internal server error")
+		if err == io.ErrUnexpectedEOF {
+			h.WriteError(w, http.StatusBadRequest, "Bad request: incomplete body")
+		} else {
+			h.WriteError(w, http.StatusInternalServerError, "Internal server error")
+		}
 		return
 	}
 
-	points, err := ingestion.ParseLineProtocol(string(lines))
+	// Parse the full body
+	points, err := ingestion.ParseLineProtocol(string(lines[:n]))
 	if err != nil {
 		logger.Errorf("Failed to parse line protocol: %v", err)
 		h.WriteError(w, http.StatusBadRequest, "Bad request")

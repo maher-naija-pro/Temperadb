@@ -1,0 +1,133 @@
+goos: linux
+goarch: amd64
+pkg: timeseriesdb/test/benchmark
+cpu: Intel Core Processor (Broadwell)
+BenchmarkHTTPWriteSinglePoint
+time="2025-08-14 18:29:23" level=info msg="Created and opened shard: default"
+time="2025-08-14 18:29:23" level=info msg="Storage engine closed"
+time="2025-08-14 18:29:23" level=info msg="Created and opened shard: default"
+time="2025-08-14 18:29:23" level=info msg="Storage engine closed"
+time="2025-08-14 18:29:23" level=info msg="Created and opened shard: default"
+time="2025-08-14 18:29:23" level=info msg="Storage engine closed"
+time="2025-08-14 18:29:23" level=info msg="Created and opened shard: default"
+time="2025-08-14 18:29:24" level=info msg="Storage engine closed"
+BenchmarkHTTPWriteSinglePoint-16        	  162718	      7349 ns/op	    1427 B/op	      28 allocs/op
+BenchmarkHTTPWriteMultiplePoints
+time="2025-08-14 18:29:24" level=info msg="Created and opened shard: default"
+time="2025-08-14 18:29:24" level=info msg="Storage engine closed"
+time="2025-08-14 18:29:24" level=info msg="Created and opened shard: default"
+time="2025-08-14 18:29:24" level=info msg="Storage engine closed"
+time="2025-08-14 18:29:24" level=info msg="Created and opened shard: default"
+time="2025-08-14 18:29:24" level=info msg="Storage engine closed"
+time="2025-08-14 18:29:24" level=info msg="Created and opened shard: default"
+time="2025-08-14 18:29:26" level=info msg="Storage engine closed"
+BenchmarkHTTPWriteMultiplePoints-16     	   32386	     36750 ns/op	    7139 B/op	     140 allocs/op
+BenchmarkHTTPWriteLargeDataset
+time="2025-08-14 18:29:26" level=info msg="Created and opened shard: default"
+time="2025-08-14 18:29:26" level=info msg="Storage engine closed"
+time="2025-08-14 18:29:26" level=info msg="Created and opened shard: default"
+time="2025-08-14 18:29:26" level=info msg="Storage engine closed"
+time="2025-08-14 18:29:26" level=info msg="Created and opened shard: default"
+time="2025-08-14 18:29:27" level=info msg="Storage engine closed"
+BenchmarkHTTPWriteLargeDataset-16       	     232	   5084356 ns/op	 1305989 B/op	   24607 allocs/op
+BenchmarkEndToEndWrite
+time="2025-08-14 18:29:27" level=info msg="Created and opened shard: default"
+time="2025-08-14 18:29:27" level=info msg="Storage engine closed"
+time="2025-08-14 18:29:27" level=info msg="Created and opened shard: default"
+time="2025-08-14 18:29:27" level=info msg="Storage engine closed"
+time="2025-08-14 18:29:27" level=info msg="Created and opened shard: default"
+time="2025-08-14 18:29:29" level=info msg="Storage engine closed"
+BenchmarkEndToEndWrite-16               	    7635	    154420 ns/op	   39219 B/op	     738 allocs/op
+BenchmarkParseSimpleLine
+BenchmarkParseSimpleLine-16             	 1321434	       912.2 ns/op	     880 B/op	      12 allocs/op
+BenchmarkParseComplexLine
+BenchmarkParseComplexLine-16            	  610473	      1854 ns/op	    1264 B/op	      20 allocs/op
+BenchmarkParseMultiLine
+BenchmarkParseMultiLine-16              	  251337	      4588 ns/op	    4928 B/op	      55 allocs/op
+BenchmarkParseLargeDataset
+BenchmarkParseLargeDataset-16           	     638	   1868854 ns/op	 1323144 B/op	   18013 allocs/op
+BenchmarkParseLineCounts
+BenchmarkParseLineCounts/1_line
+BenchmarkParseLineCounts/1_line-16      	  600288	      1844 ns/op	    1264 B/op	      20 allocs/op
+BenchmarkParseLineCounts/10_lines
+BenchmarkParseLineCounts/10_lines-16    	   61647	     18555 ns/op	   13872 B/op	     186 allocs/op
+BenchmarkParseLineCounts/100_lines
+BenchmarkParseLineCounts/100_lines-16   	    6147	    180469 ns/op	  136403 B/op	    1809 allocs/op
+BenchmarkParseLineCounts/1000_lines
+BenchmarkParseLineCounts/1000_lines-16  	     626	   1871797 ns/op	 1323124 B/op	   18013 allocs/op
+BenchmarkParseLineCounts/10000_lines
+BenchmarkParseLineCounts/10000_lines-16 	      52	  20470360 ns/op	14658138 B/op	  180025 allocs/op
+BenchmarkParseTagCounts
+BenchmarkParseTagCounts/2_tags
+BenchmarkParseTagCounts/2_tags-16       	 1289988	       915.6 ns/op	     880 B/op	      12 allocs/op
+BenchmarkParseTagCounts/5_tags
+BenchmarkParseTagCounts/5_tags-16       	  932688	      1187 ns/op	    1024 B/op	      15 allocs/op
+BenchmarkParseTagCounts/10_tags
+BenchmarkParseTagCounts/10_tags-16      	  557361	      2079 ns/op	    1880 B/op	      23 allocs/op
+BenchmarkParseTagCounts/20_tags
+BenchmarkParseTagCounts/20_tags-16      	  301492	      3824 ns/op	    3560 B/op	      35 allocs/op
+BenchmarkParseFieldCounts
+BenchmarkParseFieldCounts/1_field
+BenchmarkParseFieldCounts/1_field-16    	 1475002	       813.5 ns/op	     832 B/op	      11 allocs/op
+BenchmarkParseFieldCounts/5_fields
+BenchmarkParseFieldCounts/5_fields-16   	  832086	      1298 ns/op	    1024 B/op	      15 allocs/op
+BenchmarkParseFieldCounts/10_fields
+BenchmarkParseFieldCounts/10_fields-16  	  479335	      2325 ns/op	    1720 B/op	      23 allocs/op
+BenchmarkParseFieldCounts/20_fields
+BenchmarkParseFieldCounts/20_fields-16  	  268240	      4428 ns/op	    3128 B/op	      35 allocs/op
+BenchmarkWriteSinglePoint
+time="2025-08-14 18:29:52" level=info msg="Created and opened shard: default"
+time="2025-08-14 18:29:52" level=info msg="Storage engine closed"
+time="2025-08-14 18:29:52" level=info msg="Created and opened shard: default"
+time="2025-08-14 18:29:52" level=info msg="Storage engine closed"
+time="2025-08-14 18:29:52" level=info msg="Created and opened shard: default"
+time="2025-08-14 18:29:52" level=info msg="Storage engine closed"
+time="2025-08-14 18:29:52" level=info msg="Created and opened shard: default"
+time="2025-08-14 18:29:53" level=info msg="Storage engine closed"
+BenchmarkWriteSinglePoint-16            	  164048	      7313 ns/op	    1425 B/op	      28 allocs/op
+BenchmarkWriteMultiplePoints
+time="2025-08-14 18:29:53" level=info msg="Created and opened shard: default"
+time="2025-08-14 18:29:53" level=info msg="Storage engine closed"
+time="2025-08-14 18:29:53" level=info msg="Created and opened shard: default"
+time="2025-08-14 18:29:53" level=info msg="Storage engine closed"
+time="2025-08-14 18:29:53" level=info msg="Created and opened shard: default"
+time="2025-08-14 18:29:54" level=info msg="Storage engine closed"
+BenchmarkWriteMultiplePoints-16         	    1620	    761124 ns/op	  145942 B/op	    2799 allocs/op
+BenchmarkWritePointWithManyFields
+time="2025-08-14 18:29:54" level=info msg="Created and opened shard: default"
+time="2025-08-14 18:29:54" level=info msg="Storage engine closed"
+time="2025-08-14 18:29:54" level=info msg="Created and opened shard: default"
+time="2025-08-14 18:29:54" level=info msg="Storage engine closed"
+time="2025-08-14 18:29:54" level=info msg="Created and opened shard: default"
+time="2025-08-14 18:29:55" level=info msg="Storage engine closed"
+BenchmarkWritePointWithManyFields-16    	    3580	    319468 ns/op	   67934 B/op	    1301 allocs/op
+BenchmarkWritePointWithManyTags
+time="2025-08-14 18:29:55" level=info msg="Created and opened shard: default"
+time="2025-08-14 18:29:55" level=info msg="Storage engine closed"
+time="2025-08-14 18:29:55" level=info msg="Created and opened shard: default"
+time="2025-08-14 18:29:55" level=info msg="Storage engine closed"
+time="2025-08-14 18:29:55" level=info msg="Created and opened shard: default"
+time="2025-08-14 18:29:56" level=info msg="Storage engine closed"
+time="2025-08-14 18:29:56" level=info msg="Created and opened shard: default"
+time="2025-08-14 18:29:57" level=info msg="Storage engine closed"
+BenchmarkWritePointWithManyTags-16      	   23881	     53081 ns/op	   30379 B/op	     268 allocs/op
+BenchmarkConcurrentWrites
+time="2025-08-14 18:29:57" level=info msg="Created and opened shard: default"
+time="2025-08-14 18:29:57" level=info msg="Storage engine closed"
+time="2025-08-14 18:29:57" level=info msg="Created and opened shard: default"
+time="2025-08-14 18:29:57" level=info msg="Storage engine closed"
+time="2025-08-14 18:29:57" level=info msg="Created and opened shard: default"
+time="2025-08-14 18:29:57" level=info msg="Storage engine closed"
+time="2025-08-14 18:29:57" level=info msg="Created and opened shard: default"
+time="2025-08-14 18:29:59" level=info msg="Storage engine closed"
+BenchmarkConcurrentWrites-16            	  135496	      8959 ns/op	    1492 B/op	      28 allocs/op
+BenchmarkMemoryUsage
+time="2025-08-14 18:29:59" level=info msg="Created and opened shard: default"
+time="2025-08-14 18:29:59" level=info msg="Storage engine closed"
+time="2025-08-14 18:29:59" level=info msg="Created and opened shard: default"
+time="2025-08-14 18:29:59" level=info msg="Storage engine closed"
+time="2025-08-14 18:29:59" level=info msg="Created and opened shard: default"
+time="2025-08-14 18:30:00" level=info msg="Storage engine closed"
+BenchmarkMemoryUsage-16                 	    1605	    756678 ns/op	  146129 B/op	    2799 allocs/op
+PASS
+ok  	timeseriesdb/test/benchmark	36.985s

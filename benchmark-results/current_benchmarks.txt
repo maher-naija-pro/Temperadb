@@ -1,0 +1,129 @@
+goos: linux
+goarch: amd64
+pkg: timeseriesdb/test/benchmark
+cpu: Intel Core Processor (Broadwell)
+BenchmarkHTTPWriteSinglePoint
+time="2025-08-14 18:27:29" level=info msg="Created and opened shard: default"
+time="2025-08-14 18:27:29" level=info msg="Storage engine closed"
+time="2025-08-14 18:27:29" level=info msg="Created and opened shard: default"
+time="2025-08-14 18:27:29" level=info msg="Storage engine closed"
+time="2025-08-14 18:27:29" level=info msg="Created and opened shard: default"
+time="2025-08-14 18:27:29" level=info msg="Storage engine closed"
+time="2025-08-14 18:27:29" level=info msg="Created and opened shard: default"
+time="2025-08-14 18:27:30" level=info msg="Storage engine closed"
+BenchmarkHTTPWriteSinglePoint-16        	  163080	      7370 ns/op	    1426 B/op	      28 allocs/op
+BenchmarkHTTPWriteMultiplePoints
+time="2025-08-14 18:27:30" level=info msg="Created and opened shard: default"
+time="2025-08-14 18:27:30" level=info msg="Storage engine closed"
+time="2025-08-14 18:27:30" level=info msg="Created and opened shard: default"
+time="2025-08-14 18:27:30" level=info msg="Storage engine closed"
+time="2025-08-14 18:27:30" level=info msg="Created and opened shard: default"
+time="2025-08-14 18:27:31" level=info msg="Storage engine closed"
+time="2025-08-14 18:27:31" level=info msg="Created and opened shard: default"
+time="2025-08-14 18:27:32" level=info msg="Storage engine closed"
+BenchmarkHTTPWriteMultiplePoints-16     	   32910	     36544 ns/op	    7123 B/op	     140 allocs/op
+BenchmarkHTTPWriteLargeDataset
+time="2025-08-14 18:27:32" level=info msg="Created and opened shard: default"
+time="2025-08-14 18:27:32" level=info msg="Storage engine closed"
+time="2025-08-14 18:27:32" level=info msg="Created and opened shard: default"
+time="2025-08-14 18:27:32" level=info msg="Storage engine closed"
+time="2025-08-14 18:27:32" level=info msg="Created and opened shard: default"
+time="2025-08-14 18:27:33" level=info msg="Storage engine closed"
+BenchmarkHTTPWriteLargeDataset-16       	     231	   5071570 ns/op	 1308948 B/op	   24607 allocs/op
+BenchmarkEndToEndWrite
+time="2025-08-14 18:27:33" level=info msg="Created and opened shard: default"
+time="2025-08-14 18:27:33" level=info msg="Storage engine closed"
+time="2025-08-14 18:27:33" level=info msg="Created and opened shard: default"
+time="2025-08-14 18:27:33" level=info msg="Storage engine closed"
+time="2025-08-14 18:27:33" level=info msg="Created and opened shard: default"
+time="2025-08-14 18:27:35" level=info msg="Storage engine closed"
+BenchmarkEndToEndWrite-16               	    6728	    152556 ns/op	   39268 B/op	     738 allocs/op
+BenchmarkParseSimpleLine
+BenchmarkParseSimpleLine-16             	 1298877	       920.6 ns/op	     880 B/op	      12 allocs/op
+BenchmarkParseComplexLine
+BenchmarkParseComplexLine-16            	  607549	      1865 ns/op	    1264 B/op	      20 allocs/op
+BenchmarkParseMultiLine
+BenchmarkParseMultiLine-16              	  256305	      4592 ns/op	    4928 B/op	      55 allocs/op
+BenchmarkParseLargeDataset
+BenchmarkParseLargeDataset-16           	     640	   1888016 ns/op	 1323145 B/op	   18013 allocs/op
+BenchmarkParseLineCounts
+BenchmarkParseLineCounts/1_line
+BenchmarkParseLineCounts/1_line-16      	  641696	      1857 ns/op	    1264 B/op	      20 allocs/op
+BenchmarkParseLineCounts/10_lines
+BenchmarkParseLineCounts/10_lines-16    	   63158	     18606 ns/op	   13872 B/op	     186 allocs/op
+BenchmarkParseLineCounts/100_lines
+BenchmarkParseLineCounts/100_lines-16   	    6028	    182969 ns/op	  136402 B/op	    1809 allocs/op
+BenchmarkParseLineCounts/1000_lines
+BenchmarkParseLineCounts/1000_lines-16  	     644	   1863524 ns/op	 1323125 B/op	   18013 allocs/op
+BenchmarkParseLineCounts/10000_lines
+BenchmarkParseLineCounts/10000_lines-16 	      52	  20542284 ns/op	14658116 B/op	  180025 allocs/op
+BenchmarkParseTagCounts
+BenchmarkParseTagCounts/2_tags
+BenchmarkParseTagCounts/2_tags-16       	 1257945	       937.5 ns/op	     880 B/op	      12 allocs/op
+BenchmarkParseTagCounts/5_tags
+BenchmarkParseTagCounts/5_tags-16       	  867952	      1195 ns/op	    1024 B/op	      15 allocs/op
+BenchmarkParseTagCounts/10_tags
+BenchmarkParseTagCounts/10_tags-16      	  539817	      2070 ns/op	    1880 B/op	      23 allocs/op
+BenchmarkParseTagCounts/20_tags
+BenchmarkParseTagCounts/20_tags-16      	  302798	      3800 ns/op	    3560 B/op	      35 allocs/op
+BenchmarkParseFieldCounts
+BenchmarkParseFieldCounts/1_field
+BenchmarkParseFieldCounts/1_field-16    	 1468164	       828.8 ns/op	     832 B/op	      11 allocs/op
+BenchmarkParseFieldCounts/5_fields
+BenchmarkParseFieldCounts/5_fields-16   	  845311	      1303 ns/op	    1024 B/op	      15 allocs/op
+BenchmarkParseFieldCounts/10_fields
+BenchmarkParseFieldCounts/10_fields-16  	  472399	      2351 ns/op	    1720 B/op	      23 allocs/op
+BenchmarkParseFieldCounts/20_fields
+BenchmarkParseFieldCounts/20_fields-16  	  254577	      4472 ns/op	    3128 B/op	      35 allocs/op
+BenchmarkWriteSinglePoint
+time="2025-08-14 18:27:59" level=info msg="Created and opened shard: default"
+time="2025-08-14 18:27:59" level=info msg="Storage engine closed"
+time="2025-08-14 18:27:59" level=info msg="Created and opened shard: default"
+time="2025-08-14 18:27:59" level=info msg="Storage engine closed"
+time="2025-08-14 18:27:59" level=info msg="Created and opened shard: default"
+time="2025-08-14 18:27:59" level=info msg="Storage engine closed"
+time="2025-08-14 18:27:59" level=info msg="Created and opened shard: default"
+time="2025-08-14 18:28:00" level=info msg="Storage engine closed"
+BenchmarkWriteSinglePoint-16            	  166689	      7810 ns/op	    1465 B/op	      28 allocs/op
+BenchmarkWriteMultiplePoints
+time="2025-08-14 18:28:00" level=error msg="Error creating default shard: failed to create shard default: failed to create WAL directory: mkdir /shard_default: permission denied"
+fatal error: sync: RUnlock of unlocked RWMutex
+
+goroutine 160 [running]:
+sync.fatal({0x91f918?, 0x0?})
+	/usr/local/go/src/runtime/panic.go:1038 +0x18
+sync.(*RWMutex).rUnlockSlow(0xc000184000, 0x184640?)
+	/usr/local/go/src/sync/rwmutex.go:132 +0x39
+sync.(*RWMutex).RUnlock(...)
+	/usr/local/go/src/sync/rwmutex.go:122
+timeseriesdb/internal/storage.(*Storage).WritePoint(0xc000184000, {{0x90f6ae, 0x3}, 0xc000c841b0, 0xc000c84180, {0x0, 0xecd0bea8a, 0xce7340}})
+	/home/outscale/tsdb/internal/storage/storage.go:74 +0x455
+timeseriesdb/test/benchmark.BenchmarkWriteMultiplePoints(0xc0000e42c8)
+	/home/outscale/tsdb/test/benchmark/storage_benchmark_test.go:77 +0x4d7
+testing.(*B).runN(0xc0000e42c8, 0x1)
+	/usr/local/go/src/testing/benchmark.go:219 +0x190
+testing.(*B).run1.func1()
+	/usr/local/go/src/testing/benchmark.go:245 +0x48
+created by testing.(*B).run1 in goroutine 1
+	/usr/local/go/src/testing/benchmark.go:238 +0x90
+
+goroutine 1 [chan receive]:
+testing.(*B).run1(0xc0000e42c8)
+	/usr/local/go/src/testing/benchmark.go:247 +0xa6
+testing.(*B).Run(0xc000193b88, {0x91b493?, 0x4a3fb3?}, 0x93a4e8)
+	/usr/local/go/src/testing/benchmark.go:847 +0x491
+testing.runBenchmarks.func1(0xc000193b88)
+	/usr/local/go/src/testing/benchmark.go:708 +0x37
+testing.(*B).runN(0xc000193b88, 0x1)
+	/usr/local/go/src/testing/benchmark.go:219 +0x190
+testing.runBenchmarks({0x91a94a, 0x1b}, 0x0?, {0xcddfa0, 0x11, 0x0?})
+	/usr/local/go/src/testing/benchmark.go:717 +0x5f6
+testing.(*M).Run(0xc0001a2640)
+	/usr/local/go/src/testing/testing.go:2158 +0x9b6
+timeseriesdb/test/benchmark.TestMain(0xc0001a2640)
+	/home/outscale/tsdb/test/benchmark/setup_test.go:16 +0x2f
+main.main()
+	_testmain.go:79 +0xa8
+exit status 2
+FAIL	timeseriesdb/test/benchmark	31.122s
+FAIL

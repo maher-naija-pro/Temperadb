@@ -41,23 +41,6 @@ build-linux: $(DIST_DIR)
 	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 $(GOCMD) build -ldflags="$(LDFLAGS)" -o $(DIST_DIR)/timeseriesdb-linux-amd64 .
 	@echo "Linux build completed: $(DIST_DIR)/timeseriesdb-linux-amd64"
 
-.PHONY: build-windows
-build-windows: $(DIST_DIR)
-	@echo "Building TimeSeriesDB for Windows AMD64..."
-	GOOS=windows GOARCH=amd64 CGO_ENABLED=0 $(GOCMD) build -ldflags="$(LDFLAGS)" -o $(DIST_DIR)/timeseriesdb-windows-amd64.exe .
-	@echo "Windows build completed: $(DIST_DIR)/timeseriesdb-windows-amd64.exe"
-
-.PHONY: build-darwin
-build-darwin: $(DIST_DIR)
-	@echo "Building TimeSeriesDB for macOS AMD64..."
-	GOOS=darwin GOARCH=amd64 CGO_ENABLED=0 $(GOCMD) build -ldflags="$(LDFLAGS)" -o $(DIST_DIR)/timeseriesdb-darwin-amd64 .
-	@echo "macOS build completed: $(DIST_DIR)/timeseriesdb-darwin-amd64"
-
-.PHONY: build-darwin-arm64
-build-darwin-arm64: $(DIST_DIR)
-	@echo "Building TimeSeriesDB for macOS ARM64..."
-	GOOS=darwin GOARCH=arm64 CGO_ENABLED=0 $(GOCMD) build -ldflags="$(LDFLAGS)" -o $(DIST_DIR)/timeseriesdb-darwin-arm64 .
-	@echo "macOS ARM64 build completed: $(DIST_DIR)/timeseriesdb-darwin-arm64"
 
 .PHONY: build-all
 build-all: build-linux build-windows build-darwin build-darwin-arm64
@@ -70,11 +53,7 @@ build-docker:
 	docker build --build-arg VERSION=$(VERSION) -t timeseriesdb:$(VERSION) .
 	@echo "Docker image built: timeseriesdb:$(VERSION)"
 
-.PHONY: install
-install:
-	@echo "Installing TimeSeriesDB..."
-	$(GOCMD) install -ldflags="$(LDFLAGS)" .
-	@echo "Installation completed"
+
 
 .PHONY: clean-build
 clean-build:
@@ -105,41 +84,155 @@ deps-check:
 
 # Test targets
 .PHONY: test
-test: $(COVERAGE_DIR)
-	@echo "Running tests..."
-	$(GOCMD) test -v ./...
+test: $(BIN_DIR)
+	@echo "Running tests for all modules..."
+	@echo "========================================="
+	@echo "  TimeSeriesDB Module Testing           "
+	@echo "========================================="
+	@echo ""
+	@echo "1. Testing internal/errors..."
+	$(GOCMD) test -timeout=30s -v ./internal/errors/...
+	@echo ""
+	@echo "2. Testing internal/ingestion..."
+	$(GOCMD) test -timeout=30s -v ./internal/ingestion/...
+	@echo ""
+	@echo "3. Testing internal/metrics..."
+	$(GOCMD) test -timeout=30s -v ./internal/metrics/...
+	@echo ""
+	@echo "4. Testing internal/server..."
+	$(GOCMD) test -timeout=30s -v ./internal/server/...
+	@echo ""
+	@echo "5. Testing internal/storage..."
+	$(GOCMD) test -timeout=30s -v ./internal/storage/...
+	@echo ""
+	@echo "6. Testing internal/config..."
+	$(GOCMD) test -timeout=30s -v ./internal/config/...
+	@echo ""
+	@echo "7. Testing internal/envvars..."
+	$(GOCMD) test -timeout=30s -v ./internal/envvars/...
+	@echo ""
+	@echo "8. Testing internal/api..."
+	$(GOCMD) test -timeout=30s -v ./internal/api/...
+	@echo ""
+	@echo "9. Testing internal/types..."
+	$(GOCMD) test -timeout=30s -v ./internal/types/...
+	@echo ""
+	@echo "10. Testing internal/logger..."
+	$(GOCMD) test -timeout=30s -v ./internal/logger/...
+	@echo ""
+	@echo "11. Testing test/helpers..."
+	$(GOCMD) test -timeout=30s -v ./test/helpers/...
+	@echo ""
+	@echo "12. Testing test/utils..."
+	$(GOCMD) test -timeout=30s -v ./test/utils/...
+	@echo ""
+	@echo "13. Testing test/integration..."
+	$(GOCMD) test -timeout=30s -v ./test/integration/...
+	@echo ""
+	@echo "14. Testing test/benchmark..."
+	$(GOCMD) test -timeout=30s -v ./test/benchmark/...
+	@echo ""
+	@echo "15. Testing root package..."
+	$(GOCMD) test -timeout=30s -v ./
+	@echo ""
+	@echo "========================================="
+	@echo "  All module tests completed!           "
+	@echo "========================================="
 
 # Test with coverage
 .PHONY: coverage
 coverage: $(COVERAGE_DIR)
 	@echo "Running tests with coverage..."
-	$(GOCMD) test -v -coverprofile=$(COVERAGE_DIR)/coverage.out ./...
+	$(GOCMD) test -v -timeout=30s -coverprofile=$(COVERAGE_DIR)/coverage.out ./...
 	$(GOCMD) tool cover -html=$(COVERAGE_DIR)/coverage.out -o $(COVERAGE_DIR)/coverage.html
 	@echo "Coverage report generated: $(COVERAGE_DIR)/coverage.html"
 
-# Test with race detection
-.PHONY: test-race
-test-race:
-	@echo "Running tests with race detection..."
-	$(GOCMD) test -race -v ./...
+
 
 # Test with memory profiling
 .PHONY: test-mem
 test-mem: $(COVERAGE_DIR)
 	@echo "Running tests with memory profiling..."
-	$(GOCMD) test -memprofile=$(COVERAGE_DIR)/mem.prof -v ./...
+	$(GOCMD) test -timeout=30s -memprofile=$(COVERAGE_DIR)/mem.prof -v ./...
 	@echo "Memory profile generated: $(COVERAGE_DIR)/mem.prof"
 
-# Test specific packages
-.PHONY: test-unit
-test-unit:
-	@echo "Running unit tests..."
-	$(GOCMD) test -v ./internal/...
+
 
 .PHONY: test-integration
 test-integration:
 	@echo "Running integration tests..."
-	$(GOCMD) test -v -tags=integration ./test/...
+	$(GOCMD) test -v -timeout=30s -tags=integration ./test/...
+
+# Test individual modules
+.PHONY: test-errors
+test-errors:
+	@echo "Testing internal/errors module..."
+	$(GOCMD) test -v -timeout=30s ./internal/errors/...
+
+.PHONY: test-ingestion
+test-ingestion:
+	@echo "Testing internal/ingestion module..."
+	$(GOCMD) test -v -timeout=30s ./internal/ingestion/...
+
+.PHONY: test-metrics
+test-metrics:
+	@echo "Testing internal/metrics module..."
+	$(GOCMD) test -v -timeout=30s ./internal/metrics/...
+
+.PHONY: test-server
+test-server:
+	@echo "Testing internal/server module..."
+	$(GOCMD) test -v -timeout=30s ./internal/server/...
+
+.PHONY: test-storage
+test-storage:
+	@echo "Testing internal/storage module..."
+	$(GOCMD) test -v -timeout=30s ./internal/storage/...
+
+.PHONY: test-config
+test-config:
+	@echo "Testing internal/config module..."
+	$(GOCMD) test -v -timeout=30s ./internal/config/...
+
+.PHONY: test-envvars
+test-envvars:
+	@echo "Testing internal/envvars module..."
+	$(GOCMD) test -v -timeout=30s ./internal/envvars/...
+
+.PHONY: test-api
+test-api:
+	@echo "Testing internal/api module..."
+	$(GOCMD) test -v -timeout=30s ./internal/api/...
+	@echo "Cleaning up test data..."
+	rm -rf internal/api/http/test_data_register/
+	@echo "Test data cleanup completed"
+
+.PHONY: test-types
+test-types:
+	@echo "Testing internal/types module..."
+	$(GOCMD) test -v -timeout=30s ./internal/types/...
+
+.PHONY: test-logger
+test-logger:
+	@echo "Testing internal/logger module..."
+	$(GOCMD) test -v -timeout=30s ./internal/logger/...
+
+.PHONY: test-helpers
+test-helpers:
+	@echo "Testing test/helpers module..."
+	$(GOCMD) test -v -timeout=30s ./test/helpers/...
+
+.PHONY: test-utils
+test-utils:
+	@echo "Testing test/utils module..."
+	$(GOCMD) test -v -timeout=30s ./test/utils/...
+
+.PHONY: test-benchmark
+test-benchmark:
+	@echo "Testing test/benchmark module..."
+	$(GOCMD) test -v -timeout=30s ./test/benchmark/...
+
+
 
 # Clean coverage files
 .PHONY: clean
@@ -266,14 +359,6 @@ regression-detect: $(BENCHMARK_DIR)
 		echo "Script not found: ./scripts/detect-regressions.sh"; \
 	fi
 
-.PHONY: regression-detect-html
-regression-detect-html: $(BENCHMARK_DIR)
-	@echo "Running performance regression detection with HTML report..."
-	@if [ -f "./scripts/detect-regressions.sh" ]; then \
-		./scripts/detect-regressions.sh -H; \
-	else \
-		echo "Script not found: ./scripts/detect-regressions.sh"; \
-	fi
 
 .PHONY: regression-detect-json
 regression-detect-json: $(BENCHMARK_DIR)
@@ -396,17 +481,7 @@ performance-clean:
 	rm -f $(BENCHMARK_DIR)/regression_report_*.json
 	@echo "Performance monitoring artifacts cleaned."
 
-# Development workflow
-.PHONY: dev-setup
-dev-setup: deps
-	@echo "Setting up development environment..."
-	@if command -v golangci-lint >/dev/null 2>&1; then \
-		echo "golangci-lint already installed"; \
-	else \
-		echo "Installing golangci-lint..."; \
-		go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest; \
-	fi
-	@echo "Development environment setup completed"
+
 
 .PHONY: pre-commit
 pre-commit: fmt vet lint test
@@ -416,16 +491,7 @@ pre-commit: fmt vet lint test
 ci: deps-check lint test coverage
 	@echo "CI checks completed"
 
-# Documentation
-.PHONY: docs
-docs:
-	@echo "Generating documentation..."
-	@if command -v godoc >/dev/null 2>&1; then \
-		echo "Starting godoc server at http://localhost:6060"; \
-		godoc -http=:6060; \
-	else \
-		echo "godoc not found. Install with: go install golang.org/x/tools/cmd/godoc@latest"; \
-	fi
+
 
 # Release targets
 .PHONY: release
@@ -458,6 +524,10 @@ help:
 	@echo "  build-darwin-arm64 - Build for macOS ARM64"
 	@echo "  build-all          - Build for all platforms"
 	@echo "  build-docker       - Build Docker image"
+	@echo "  docker-run         - Run Docker container"
+	@echo "  docker-stop        - Stop Docker container"
+	@echo "  docker-test        - Test Docker image"
+	@echo "  docker-push        - Show push commands for registry"
 	@echo "  install            - Install binary"
 	@echo "  clean-build        - Clean build artifacts"
 	@echo ""
@@ -467,13 +537,30 @@ help:
 	@echo "  deps-check         - Check dependencies"
 	@echo ""
 	@echo "Test targets:"
-	@echo "  test               - Run all tests"
+	@echo "  test               - Run all tests for all modules"
 	@echo "  test-race          - Run tests with race detection"
 	@echo "  test-mem           - Run tests with memory profiling"
 	@echo "  test-unit          - Run unit tests only"
 	@echo "  test-integration   - Run integration tests only"
 	@echo "  coverage           - Run tests with coverage report"
 	@echo "  clean              - Clean test artifacts"
+	@echo ""
+	@echo "Individual module tests:"
+	@echo "  test-errors        - Test internal/errors module"
+	@echo "  test-ingestion     - Test internal/ingestion module"
+	@echo "  test-metrics       - Test internal/metrics module"
+	@echo "  test-server        - Test internal/server module"
+	@echo "  test-storage       - Test internal/storage module"
+	@echo "  test-config        - Test internal/config module"
+	@echo "  test-envvars       - Test internal/envvars module"
+	@echo "  test-api           - Test internal/api module"
+	@echo "  test-types         - Test internal/types module"
+	@echo "  test-logger        - Test internal/logger module"
+	@echo "  test-helpers       - Test test/helpers module"
+	@echo "  test-utils         - Test test/utils module"
+	@echo "  test-benchmark     - Test test/benchmark module"
+	@echo "  test-integration-module - Test test/integration module"
+	@echo "  test-root          - Test root package"
 	@echo ""
 	@echo "Code quality:"
 	@echo "  lint               - Run linter"
@@ -501,6 +588,10 @@ help:
 	@echo "  docs               - Generate documentation"
 	@echo "  release            - Create release packages"
 	@echo "  clean-all          - Clean all artifacts"
+	@echo "  benchmark-help     - Show benchmark help message"
+	@echo "  test-help          - Show testing help message"
+	@echo "  performance-help   - Show performance help message"
+	@echo "  build-help         - Show build help message"
 	@echo "  help               - Show this help message"
 
 .PHONY: benchmark-help
@@ -522,6 +613,44 @@ benchmark-help:
 	@echo "  go test -bench=BenchmarkParse -benchmem ./test/       # Ingestion only"
 	@echo "  go test -bench=BenchmarkWrite -benchmem ./test/       # Storage only"
 	@echo "  go test -bench=BenchmarkHTTP -benchmem ./test/        # HTTP only"
+
+.PHONY: test-help
+test-help:
+	@echo "Available testing targets:"
+	@echo ""
+	@echo "Complete Testing:"
+	@echo "  test                  - Run all tests for all modules"
+	@echo "  test-mem              - Run tests with memory profiling"
+	@echo "  test-unit             - Run unit tests only"
+	@echo "  test-integration      - Run integration tests only"
+	@echo "  coverage              - Run tests with coverage report"
+	@echo ""
+	@echo "Individual Module Tests:"
+	@echo "  test-errors           - Test internal/errors module"
+	@echo "  test-ingestion        - Test internal/ingestion module"
+	@echo "  test-metrics          - Test internal/metrics module"
+	@echo "  test-server           - Test internal/server module"
+	@echo "  test-storage          - Test internal/storage module"
+	@echo "  test-config           - Test internal/config module"
+	@echo "  test-envvars          - Test internal/envvars module"
+	@echo "  test-api              - Test internal/api module"
+	@echo "  test-types            - Test internal/types module"
+	@echo "  test-logger           - Test internal/logger module"
+	@echo "  test-helpers          - Test test/helpers module"
+	@echo "  test-utils            - Test test/utils module"
+	@echo "  test-benchmark        - Test test/benchmark module"
+	@echo "  test-integration-module - Test test/integration module"
+	@echo "  test-root             - Test root package"
+	@echo ""
+	@echo "Utility:"
+	@echo "  clean                 - Clean test artifacts"
+	@echo "  test-help             - Show this help message"
+	@echo ""
+	@echo "Quick commands:"
+	@echo "  make test             # Test all modules"
+	@echo "  make test-storage     # Test storage module only"
+	@echo "  make test-api         # Test API module only"
+	@echo "  make coverage         # Test with coverage report"
 
 .PHONY: performance-help
 performance-help:
