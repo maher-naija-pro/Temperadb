@@ -71,21 +71,44 @@ jobs:
         # Test container starts
         container_id=$(docker run -d -p 8080:8080 ${{ env.REGISTRY }}/${{ steps.image_name.outputs.IMAGE_NAME }}:${{ steps.version.outputs.VERSION }})
         
-        # Wait for container to be ready
-        sleep 5
+        # Wait for container to be ready and check logs
+        echo "Waiting for container to start..."
+        sleep 10
         
         # Check if container is running
         if docker ps | grep -q $container_id; then
           echo "✅ Container started successfully"
           
-          # Test health endpoint
-          if curl -f http://localhost:8080/health 2>/dev/null; then
-            echo "✅ Health check passed"
-          else
-            echo "⚠️  Health check failed or endpoint not available"
+          # Wait a bit more for the application to fully initialize
+          sleep 5
+          
+          # Test health endpoint with retries
+          max_retries=5
+          retry_count=0
+          health_check_passed=false
+          
+          while [ $retry_count -lt $max_retries ]; do
+            echo "Testing health endpoint (attempt $((retry_count + 1))/$max_retries)..."
+            if curl -f http://localhost:8080/health 2>/dev/null; then
+              echo "✅ Health check passed"
+              health_check_passed=true
+              break
+            else
+              echo "⚠️  Health check attempt $((retry_count + 1)) failed, retrying..."
+              retry_count=$((retry_count + 1))
+              sleep 3
+            fi
+          done
+          
+          if [ "$health_check_passed" = false ]; then
+            echo "❌ Health check failed after $max_retries attempts"
+            echo "Container logs:"
+            docker logs $container_id
+            exit 1
           fi
         else
           echo "❌ Container failed to start"
+          echo "Container logs:"
           docker logs $container_id
           exit 1
         fi
