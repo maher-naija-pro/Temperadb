@@ -50,7 +50,7 @@ COPY --from=builder /app/timeseriesdb .
 COPY --from=builder /app/env.example .env.example
 
 # Create data directory
-RUN mkdir -p /app/data && \
+RUN mkdir -p /app/data /app/data/backups && \
     chown -R timeseriesdb:timeseriesdb /app
 
 # Switch to non-root user
@@ -62,6 +62,8 @@ EXPOSE 8080
 # Set environment variables
 ENV PORT=8080
 ENV DATA_FILE=/app/data/data.tsv
+ENV DATA_DIR=/app/data
+ENV BACKUP_DIR=/app/data/backups
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
