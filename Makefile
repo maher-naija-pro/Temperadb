@@ -143,7 +143,7 @@ test: $(BIN_DIR)
 .PHONY: coverage
 coverage: $(COVERAGE_DIR)
 	@echo "Running tests with coverage..."
-	$(GOCMD) test -v -coverprofile=$(COVERAGE_DIR)/coverage.out ./...
+	$(GOCMD) test -v -timeout=30s -coverprofile=$(COVERAGE_DIR)/coverage.out ./...
 	$(GOCMD) tool cover -html=$(COVERAGE_DIR)/coverage.out -o $(COVERAGE_DIR)/coverage.html
 	@echo "Coverage report generated: $(COVERAGE_DIR)/coverage.html"
 
@@ -153,7 +153,7 @@ coverage: $(COVERAGE_DIR)
 .PHONY: test-mem
 test-mem: $(COVERAGE_DIR)
 	@echo "Running tests with memory profiling..."
-	$(GOCMD) test -memprofile=$(COVERAGE_DIR)/mem.prof -v ./...
+	$(GOCMD) test -timeout=30s -memprofile=$(COVERAGE_DIR)/mem.prof -v ./...
 	@echo "Memory profile generated: $(COVERAGE_DIR)/mem.prof"
 
 
@@ -161,48 +161,48 @@ test-mem: $(COVERAGE_DIR)
 .PHONY: test-integration
 test-integration:
 	@echo "Running integration tests..."
-	$(GOCMD) test -v -tags=integration ./test/...
+	$(GOCMD) test -v -timeout=30s -tags=integration ./test/...
 
 # Test individual modules
 .PHONY: test-errors
 test-errors:
 	@echo "Testing internal/errors module..."
-	$(GOCMD) test -v ./internal/errors/...
+	$(GOCMD) test -v -timeout=30s ./internal/errors/...
 
 .PHONY: test-ingestion
 test-ingestion:
 	@echo "Testing internal/ingestion module..."
-	$(GOCMD) test -v ./internal/ingestion/...
+	$(GOCMD) test -v -timeout=30s ./internal/ingestion/...
 
 .PHONY: test-metrics
 test-metrics:
 	@echo "Testing internal/metrics module..."
-	$(GOCMD) test -v ./internal/metrics/...
+	$(GOCMD) test -v -timeout=30s ./internal/metrics/...
 
 .PHONY: test-server
 test-server:
 	@echo "Testing internal/server module..."
-	$(GOCMD) test -v ./internal/server/...
+	$(GOCMD) test -v -timeout=30s ./internal/server/...
 
 .PHONY: test-storage
 test-storage:
 	@echo "Testing internal/storage module..."
-	$(GOCMD) test -v ./internal/storage/...
+	$(GOCMD) test -v -timeout=30s ./internal/storage/...
 
 .PHONY: test-config
 test-config:
 	@echo "Testing internal/config module..."
-	$(GOCMD) test -v ./internal/config/...
+	$(GOCMD) test -v -timeout=30s ./internal/config/...
 
 .PHONY: test-envvars
 test-envvars:
 	@echo "Testing internal/envvars module..."
-	$(GOCMD) test -v ./internal/envvars/...
+	$(GOCMD) test -v -timeout=30s ./internal/envvars/...
 
 .PHONY: test-api
 test-api:
 	@echo "Testing internal/api module..."
-	$(GOCMD) test -v ./internal/api/...
+	$(GOCMD) test -v -timeout=30s ./internal/api/...
 	@echo "Cleaning up test data..."
 	rm -rf internal/api/http/test_data_register/
 	@echo "Test data cleanup completed"
@@ -210,27 +210,27 @@ test-api:
 .PHONY: test-types
 test-types:
 	@echo "Testing internal/types module..."
-	$(GOCMD) test -v ./internal/types/...
+	$(GOCMD) test -v -timeout=30s ./internal/types/...
 
 .PHONY: test-logger
 test-logger:
 	@echo "Testing internal/logger module..."
-	$(GOCMD) test -v ./internal/logger/...
+	$(GOCMD) test -v -timeout=30s ./internal/logger/...
 
 .PHONY: test-helpers
 test-helpers:
 	@echo "Testing test/helpers module..."
-	$(GOCMD) test -v ./test/helpers/...
+	$(GOCMD) test -v -timeout=30s ./test/helpers/...
 
 .PHONY: test-utils
 test-utils:
 	@echo "Testing test/utils module..."
-	$(GOCMD) test -v ./test/utils/...
+	$(GOCMD) test -v -timeout=30s ./test/utils/...
 
 .PHONY: test-benchmark
 test-benchmark:
 	@echo "Testing test/benchmark module..."
-	$(GOCMD) test -v ./test/benchmark/...
+	$(GOCMD) test -v -timeout=30s ./test/benchmark/...
 
 
 
