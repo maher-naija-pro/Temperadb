@@ -105,6 +105,10 @@ func (s *Server) Close() error {
 
 // Shutdown gracefully shuts down the server
 func (s *Server) Shutdown(ctx context.Context) error {
+	if ctx == nil {
+		return errors.NewValidationError("context cannot be nil")
+	}
+
 	logger.Info("Shutting down server gracefully...")
 
 	// Update server status to shutting down
