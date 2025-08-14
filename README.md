@@ -3,7 +3,7 @@
 
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen?style=flat-square)
 [![Coverage](https://img.shields.io/badge/coverage-58.7%25-brightgreen?style=flat-square)
-[![Go Version](https://img.shields.io/badge/go-1.24.6-blue?style=flat-square)
+[![Go Version](https://img.shields.io/badge/go-1.24.5-blue?style=flat-square)
 [![License](https://img.shields.io/badge/license-AGPL%20v3.0-red?style=flat-square)
 
 
