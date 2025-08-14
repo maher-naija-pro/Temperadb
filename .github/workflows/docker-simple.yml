@@ -9,7 +9,6 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
 
 permissions:
   contents: read
@@ -43,6 +42,11 @@ jobs:
           echo "VERSION=latest" >> $GITHUB_OUTPUT
         fi
 
+    - name: Set lowercase image name
+      id: image_name
+      run: |
+        echo "IMAGE_NAME=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
+
     - name: Build and push Docker image
       uses: docker/build-push-action@v5
       with:
@@ -50,8 +54,8 @@ jobs:
         platforms: linux/amd64
         push: true
         tags: |
-          ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.VERSION }}
-          ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          ${{ env.REGISTRY }}/${{ steps.image_name.outputs.IMAGE_NAME }}:${{ steps.version.outputs.VERSION }}
+          ${{ env.REGISTRY }}/${{ steps.image_name.outputs.IMAGE_NAME }}:latest
         cache-from: type=gha
         cache-to: type=gha,mode=max
         build-args: |
@@ -62,10 +66,10 @@ jobs:
         echo "Testing Docker image..."
         
         # Pull and test the image
-        docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.VERSION }}
+        docker pull ${{ env.REGISTRY }}/${{ steps.image_name.outputs.IMAGE_NAME }}:${{ steps.version.outputs.VERSION }}
         
         # Test container starts
-        container_id=$(docker run -d -p 8080:8080 ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.VERSION }})
+        container_id=$(docker run -d -p 8080:8080 ${{ env.REGISTRY }}/${{ steps.image_name.outputs.IMAGE_NAME }}:${{ steps.version.outputs.VERSION }})
         
         # Wait for container to be ready
         sleep 5
@@ -95,8 +99,8 @@ jobs:
     - name: Show image info
       run: |
         echo "📦 Docker image built successfully!"
-        echo "Image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.VERSION }}"
-        echo "Latest: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest"
+        echo "Image: ${{ env.REGISTRY }}/${{ steps.image_name.outputs.IMAGE_NAME }}:${{ steps.version.outputs.VERSION }}"
+        echo "Latest: ${{ env.REGISTRY }}/${{ steps.image_name.outputs.IMAGE_NAME }}:latest"
         
         if [[ "${{ steps.version.outputs.VERSION }}" != "latest" ]]; then
           echo "Tag: ${{ steps.version.outputs.VERSION }}"
