@@ -5,7 +5,12 @@ import (
 	"path/filepath"
 	"testing"
 	"time"
+	"timeseriesdb/internal/logger"
 )
+
+func init() {
+	logger.Init()
+}
 
 func TestNewShard(t *testing.T) {
 	t.Run("create new shard", func(t *testing.T) {
@@ -22,7 +27,7 @@ func TestNewShard(t *testing.T) {
 			CompactionInterval:  30 * time.Second,
 		}
 
-		shard, err := NewShard(config)
+		shard, err := NewShard(config, nil)
 		if err != nil {
 			t.Fatalf("Failed to create shard: %v", err)
 		}
@@ -70,7 +75,7 @@ func TestNewShard(t *testing.T) {
 			CompactionInterval:  30 * time.Second,
 		}
 
-		_, err := NewShard(config)
+		_, err := NewShard(config, nil)
 		if err != nil {
 			t.Fatalf("Failed to create shard: %v", err)
 		}
@@ -97,7 +102,7 @@ func TestShardOpenClose(t *testing.T) {
 			CompactionInterval:  100 * time.Millisecond, // Fast for testing
 		}
 
-		shard, err := NewShard(config)
+		shard, err := NewShard(config, nil)
 		if err != nil {
 			t.Fatalf("Failed to create shard: %v", err)
 		}
@@ -141,7 +146,7 @@ func TestShardOpenClose(t *testing.T) {
 			CompactionInterval:  30 * time.Second,
 		}
 
-		shard, err := NewShard(config)
+		shard, err := NewShard(config, nil)
 		if err != nil {
 			t.Fatalf("Failed to create shard: %v", err)
 		}
@@ -173,7 +178,7 @@ func TestShardWrite(t *testing.T) {
 			CompactionInterval:  100 * time.Millisecond,
 		}
 
-		shard, err := NewShard(config)
+		shard, err := NewShard(config, nil)
 		if err != nil {
 			t.Fatalf("Failed to create shard: %v", err)
 		}
@@ -218,7 +223,7 @@ func TestShardWrite(t *testing.T) {
 			CompactionInterval:  30 * time.Second,
 		}
 
-		shard, err := NewShard(config)
+		shard, err := NewShard(config, nil)
 		if err != nil {
 			t.Fatalf("Failed to create shard: %v", err)
 		}
@@ -250,7 +255,7 @@ func TestShardWrite(t *testing.T) {
 			CompactionInterval:  30 * time.Second,
 		}
 
-		shard, err := NewShard(config)
+		shard, err := NewShard(config, nil)
 		if err != nil {
 			t.Fatalf("Failed to create shard: %v", err)
 		}
@@ -285,7 +290,7 @@ func TestShardRead(t *testing.T) {
 			CompactionInterval:  100 * time.Millisecond,
 		}
 
-		shard, err := NewShard(config)
+		shard, err := NewShard(config, nil)
 		if err != nil {
 			t.Fatalf("Failed to create shard: %v", err)
 		}
@@ -354,7 +359,7 @@ func TestShardRead(t *testing.T) {
 			CompactionInterval:  100 * time.Millisecond,
 		}
 
-		shard, err := NewShard(config)
+		shard, err := NewShard(config, nil)
 		if err != nil {
 			t.Fatalf("Failed to create shard: %v", err)
 		}
@@ -416,7 +421,7 @@ func TestShardRead(t *testing.T) {
 			CompactionInterval:  30 * time.Second,
 		}
 
-		shard, err := NewShard(config)
+		shard, err := NewShard(config, nil)
 		if err != nil {
 			t.Fatalf("Failed to create shard: %v", err)
 		}
@@ -453,7 +458,7 @@ func TestShardStats(t *testing.T) {
 			CompactionInterval:  100 * time.Millisecond,
 		}
 
-		shard, err := NewShard(config)
+		shard, err := NewShard(config, nil)
 		if err != nil {
 			t.Fatalf("Failed to create shard: %v", err)
 		}
@@ -519,7 +524,7 @@ func TestShardStats(t *testing.T) {
 			CompactionInterval:  30 * time.Second,
 		}
 
-		shard, err := NewShard(config)
+		shard, err := NewShard(config, nil)
 		if err != nil {
 			t.Fatalf("Failed to create shard: %v", err)
 		}
@@ -550,7 +555,7 @@ func TestShardGetters(t *testing.T) {
 			CompactionInterval:  30 * time.Second,
 		}
 
-		shard, err := NewShard(config)
+		shard, err := NewShard(config, nil)
 		if err != nil {
 			t.Fatalf("Failed to create shard: %v", err)
 		}
@@ -575,7 +580,7 @@ func TestShardGetters(t *testing.T) {
 			CompactionInterval:  30 * time.Second,
 		}
 
-		shard, err := NewShard(config)
+		shard, err := NewShard(config, nil)
 		if err != nil {
 			t.Fatalf("Failed to create shard: %v", err)
 		}

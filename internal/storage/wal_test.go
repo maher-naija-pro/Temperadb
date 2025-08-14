@@ -5,7 +5,12 @@ import (
 	"path/filepath"
 	"testing"
 	"time"
+	"timeseriesdb/internal/logger"
 )
+
+func init() {
+	logger.Init()
+}
 
 func TestNewWAL(t *testing.T) {
 	t.Run("create new WAL", func(t *testing.T) {

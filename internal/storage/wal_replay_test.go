@@ -5,12 +5,18 @@ import (
 	"path/filepath"
 	"testing"
 	"time"
+	"timeseriesdb/internal/logger"
 )
+
+func init() {
+	logger.Init()
+}
 
 func TestNewWALReplay(t *testing.T) {
 	t.Run("create new WAL replay", func(t *testing.T) {
 		tempDir := t.TempDir()
-		replay := NewWALReplay(tempDir)
+		metrics := NewStorageMetrics()
+		replay := NewWALReplay(tempDir, metrics)
 
 		if replay == nil {
 			t.Fatal("WALReplay should not be nil")
@@ -24,7 +30,8 @@ func TestNewWALReplay(t *testing.T) {
 func TestGetWALFiles(t *testing.T) {
 	t.Run("get WAL files from directory", func(t *testing.T) {
 		tempDir := t.TempDir()
-		replay := NewWALReplay(tempDir)
+		metrics := NewStorageMetrics()
+		replay := NewWALReplay(tempDir, metrics)
 
 		// Create some WAL files
 		walFiles := []string{
@@ -81,7 +88,8 @@ func TestGetWALFiles(t *testing.T) {
 
 	t.Run("get WAL files from empty directory", func(t *testing.T) {
 		tempDir := t.TempDir()
-		replay := NewWALReplay(tempDir)
+		metrics := NewStorageMetrics()
+		replay := NewWALReplay(tempDir, metrics)
 
 		files, err := replay.getWALFiles()
 		if err != nil {
@@ -97,7 +105,8 @@ func TestGetWALFiles(t *testing.T) {
 func TestReplayFile(t *testing.T) {
 	t.Run("replay valid WAL file", func(t *testing.T) {
 		tempDir := t.TempDir()
-		replay := NewWALReplay(tempDir)
+		metrics := NewStorageMetrics()
+		replay := NewWALReplay(tempDir, metrics)
 
 		// Create a simple WAL file with some entries
 		walPath := filepath.Join(tempDir, "test.wal")
@@ -124,7 +133,8 @@ func TestReplayFile(t *testing.T) {
 
 	t.Run("replay non-existent file", func(t *testing.T) {
 		tempDir := t.TempDir()
-		replay := NewWALReplay(tempDir)
+		metrics := NewStorageMetrics()
+		replay := NewWALReplay(tempDir, metrics)
 
 		result := &ReplayResult{
 			SeriesData: make(map[string][]DataPoint),
@@ -140,7 +150,8 @@ func TestReplayFile(t *testing.T) {
 func TestDeserializeEntry(t *testing.T) {
 	t.Run("deserialize valid entry", func(t *testing.T) {
 		tempDir := t.TempDir()
-		replay := NewWALReplay(tempDir)
+		metrics := NewStorageMetrics()
+		replay := NewWALReplay(tempDir, metrics)
 
 		// Create valid entry data with proper JSON structure
 		entryData := []byte(`{
@@ -175,7 +186,8 @@ func TestDeserializeEntry(t *testing.T) {
 
 	t.Run("deserialize invalid entry", func(t *testing.T) {
 		tempDir := t.TempDir()
-		replay := NewWALReplay(tempDir)
+		metrics := NewStorageMetrics()
+		replay := NewWALReplay(tempDir, metrics)
 
 		// Create invalid data
 		invalidData := []byte("invalid json data")
@@ -190,7 +202,8 @@ func TestDeserializeEntry(t *testing.T) {
 func TestValidateEntry(t *testing.T) {
 	t.Run("validate valid entry", func(t *testing.T) {
 		tempDir := t.TempDir()
-		replay := NewWALReplay(tempDir)
+		metrics := NewStorageMetrics()
+		replay := NewWALReplay(tempDir, metrics)
 
 		entry := WALEntry{
 			ID:        1,
@@ -213,7 +226,8 @@ func TestValidateEntry(t *testing.T) {
 
 	t.Run("validate invalid entry", func(t *testing.T) {
 		tempDir := t.TempDir()
-		replay := NewWALReplay(tempDir)
+		metrics := NewStorageMetrics()
+		replay := NewWALReplay(tempDir, metrics)
 
 		entry := WALEntry{
 			ID:        1,
@@ -234,7 +248,8 @@ func TestValidateEntry(t *testing.T) {
 func TestCleanupOldWALs(t *testing.T) {
 	t.Run("cleanup old WAL files", func(t *testing.T) {
 		tempDir := t.TempDir()
-		replay := NewWALReplay(tempDir)
+		metrics := NewStorageMetrics()
+		replay := NewWALReplay(tempDir, metrics)
 
 		// Create old WAL files with old timestamps
 		oldFiles := []string{
@@ -293,7 +308,8 @@ func TestCleanupOldWALs(t *testing.T) {
 
 	t.Run("cleanup with no old files", func(t *testing.T) {
 		tempDir := t.TempDir()
-		replay := NewWALReplay(tempDir)
+		metrics := NewStorageMetrics()
+		replay := NewWALReplay(tempDir, metrics)
 
 		// Create only recent files
 		recentFiles := []string{
@@ -327,7 +343,8 @@ func TestCleanupOldWALs(t *testing.T) {
 func TestGetWALStats(t *testing.T) {
 	t.Run("get WAL statistics", func(t *testing.T) {
 		tempDir := t.TempDir()
-		replay := NewWALReplay(tempDir)
+		metrics := NewStorageMetrics()
+		replay := NewWALReplay(tempDir, metrics)
 
 		// Create some WAL files with different sizes
 		walFiles := []string{
@@ -371,7 +388,8 @@ func TestGetWALStats(t *testing.T) {
 
 	t.Run("get WAL statistics from empty directory", func(t *testing.T) {
 		tempDir := t.TempDir()
-		replay := NewWALReplay(tempDir)
+		metrics := NewStorageMetrics()
+		replay := NewWALReplay(tempDir, metrics)
 
 		stats, err := replay.GetWALStats()
 		if err != nil {

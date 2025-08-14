@@ -1,391 +1,272 @@
-# TimeSeriesDB CI/CD & Benchmark Systems - Integrated Guide
+# CI/CD Guide
 
-This document provides a comprehensive overview of the integrated CI/CD and Benchmark systems for TimeSeriesDB, combining automated build processes with performance testing and monitoring.
+This document describes the Continuous Integration and Continuous Deployment (CI/CD) setup for TimeSeriesDB, including Docker image building and automated workflows.
 
 ## Overview
 
-The TimeSeriesDB development pipeline integrates three core systems:
+TimeSeriesDB uses GitHub Actions for automated CI/CD processes. The workflows automatically build, test, and deploy Docker images to GitHub Container Registry (GHCR) on specific events.
 
-1. **CI/CD Pipeline** - Automated building, testing, and deployment
-2. **Benchmark CI System** - Performance testing and regression detection
-3. **Auto PR Creator** - Automatic pull request creation for test branches
+## Workflows
 
-Together, these systems ensure code quality, performance consistency, and reliable releases across multiple platforms and Go versions.
+### 1. Docker Build (Simple) - `docker-simple.yml`
 
-## Integrated Workflows
-
-### 1. Build and Package Pipeline (`.github/workflows/build-packages.yml`)
+**Purpose:** Build and push Docker images for main merges and tags.
 
 **Triggers:**
 - Push to `main` or `master` branch
-- Push of a tag (e.g., `v1.0.0`)
-- Pull request to `main` or `master`
+- Push of version tags (e.g., `v1.0.0`)
 - Manual workflow dispatch
-
-**Jobs:**
-
-#### Build Job (Matrix Strategy)
-- **Multi-platform builds**:
-  - Linux AMD64 & ARM64
-  - Windows AMD64
-  - macOS AMD64 & ARM64 (Apple Silicon)
-- **Artifacts**: Platform-specific binaries and archives
-- **Docker**: Linux platform images
-
-#### Release Job
-- **Condition**: Only runs on tag pushes
-- **Action**: Creates GitHub release with all built artifacts
-- **Files**: `.tar.gz` and `.zip` files for each platform
-
-#### Publish Docker Job
-- **Condition**: Only runs on tag pushes
-- **Action**: Publishes to GitHub Container Registry
-- **Tags**: Versioned and `latest` tags
-
-#### Test Binaries Job
-- **Condition**: Only runs on tag pushes
-- **Action**: Verifies built binaries functionality
-
-#### Security Scan Job
-- **Condition**: Only runs on tag pushes
-- **Action**: Trivy vulnerability scanner
-- **Output**: GitHub Security tab integration
-
-### 2. Benchmark Pipeline (`.github/workflows/benchmark.yml`)
-
-**Triggers:**
-- Push/Pull Request to main/master
-- Daily scheduled runs (2 AM UTC)
-- Manual workflow dispatch
-
-**Jobs:**
-
-#### Benchmark Job (Matrix Strategy)
-- **Go version compatibility**: 1.20, 1.21, 1.22
-- **Performance consistency**: Ensures compatibility across versions
-- **Artifacts**: CPU/memory profiles, benchmark results
-
-#### Benchmark Performance Job
-- **Post-benchmark analysis**: Detailed performance metrics
-- **PR integration**: Automatic comments with benchmark summaries
-- **Regression detection**: Performance change analysis
-- **Long-term storage**: 90-day artifact retention
-
-### 3. Auto PR Creator Pipeline
-
-**Workflows:**
-- **`auto-pr-creator.yml`** - Full-featured workflow with detailed logging
-- **`auto-pr-creator-fast.yml`** - Optimized for speed with minimal steps
-
-**Triggers:**
-- **Automatic**: Pushes to branches matching patterns:
-  - `test*` (e.g., `test`, `test-feature`, `test-bugfix`)
-  - `test`
-  - `feature*` (e.g., `feature/new-query`, `feature/optimization`)
-  - `dev*` (e.g., `dev`, `dev-experimental`)
-- **Manual**: Can be triggered manually via GitHub Actions
-
-**Process:**
-1. **Check**: Verifies if a PR already exists for the branch
-2. **Create**: If no PR exists, creates a draft PR with:
-   - Title: "Auto PR: {branch} → main"
-   - Draft status (requires manual review)
-   - Base: `main`
-   - Head: current branch
 
 **Features:**
-- ✅ **Smart**: Only creates PRs when they don't exist
-- ✅ **Fast**: Minimal checkout depth and efficient checks
-- ✅ **Safe**: Creates draft PRs requiring manual review
-- ✅ **Flexible**: Works with any test/feature/dev branch pattern
+- Single platform build (linux/amd64)
+- Automatic versioning
+- Image testing
+- GitHub Container Registry integration
 
-## Local Development Integration
+**Output:**
+- `ghcr.io/maher-naija-pro/my-timeserie:latest`
+- `ghcr.io/maher-naija-pro/my-timeserie:{version}` (for tags)
 
-### Prerequisites
-- Go 1.20 or later
-- Docker (optional, for Docker builds)
-- Make
+### 2. Docker Build and Push - `docker-build.yml`
 
-### Integrated Development Commands
+**Purpose:** Comprehensive Docker build workflow with multi-architecture support and security scanning.
 
-```bash
-# Build and test cycle
-make build              # Build current platform
-make test              # Run unit tests
-make benchmark         # Run performance tests
-make clean-build       # Clean artifacts
+**Triggers:**
+- Push to `main` or `master` branch
+- Push of version tags
+- Pull requests (build only, no push)
+- Manual workflow dispatch
 
-# Platform-specific builds
-make build-linux       # Linux AMD64
-make build-windows     # Windows AMD64
-make build-darwin      # macOS AMD64
-make build-all         # All platforms
-
-# Docker integration
-make build-docker      # Docker image build
-```
-
-### Benchmark Script Integration
-
-```bash
-# Run all benchmarks
-./scripts/run-benchmarks.sh
-
-# Category-specific testing
-./scripts/run-benchmarks.sh -p  # Ingestion only
-./scripts/run-benchmarks.sh -s  # Storage only
-./scripts/run-benchmarks.sh -e  # HTTP endpoints only
-./scripts/run-benchmarks.sh -t  # End-to-end workflows only
-./scripts/run-benchmarks.sh -m  # Memory usage only
-
-# Performance comparison
-./scripts/run-benchmarks.sh -c  # Compare with baseline
-./scripts/run-benchmarks.sh -b  # Set current as baseline
-```
-
-## Benchmark Categories
-
-### 1. Ingestion Performance
-- Simple line parsing
-- Complex line parsing (many tags/fields)
-- Multi-line batch processing
-- Large dataset scalability (1-10,000 lines)
-- Tag and field count variations
-
-### 2. Storage Performance
-- Single point writes
-- Batch point operations
-- Many fields/tags scenarios
-
-### 3. HTTP Endpoint Performance
-- Single and batch writes
-- Large dataset operations
-
-### 4. End-to-End Workflows
-- Complete parse → store → retrieve cycles
-- Concurrent operation performance
-
-### 5. Memory Usage Analysis
-- Allocation patterns
-- Garbage collection pressure
-
-## Quality Assurance Flow
-
-```
-Code Change → Local Development → Local Testing → Local Benchmarks
-                ↓
-        Push to Repository → CI/CD Pipeline Activation
-                ↓
-        Parallel Execution:
-        ├── Build & Package Pipeline
-        │   ├── Multi-platform builds
-        │   ├── Docker image creation
-        │   ├── Security scanning
-        │   └── Binary verification
-        ├── Benchmark Pipeline
-        │   ├── Multi-version testing
-        │   ├── Performance analysis
-        │   ├── Regression detection
-        │   └── PR integration
-        └── Auto PR Creator
-            ├── Branch pattern matching
-            ├── PR existence checking
-            └── Draft PR creation
-                ↓
-        Quality Gates → Release (if tag) → Artifact Storage
-                ↓
-        Continuous Monitoring → Trend Analysis → Alerting
-```
-
-## Performance Analysis Integration
-
-### Benchmark Output Format
-```
-BenchmarkParseSimpleLine-8         1000000              1234 ns/op             256 B/op          8 allocs/op
-BenchmarkParseComplexLine-8          500000              2468 ns/op             512 B/op         16 allocs/op
-```
-
-**Metrics:**
-- **Time per Operation**: Nanoseconds per operation
-- **Memory per Operation**: Bytes allocated per operation
-- **Allocations per Operation**: Number of allocations per operation
-
-### Profiling Integration
-- **CPU Profiles**: Execution time analysis
-- **Memory Profiles**: Allocation pattern analysis
-- **Web Interface**: `go tool pprof -http=:8080`
-
-## Continuous Monitoring
-
-### Daily Performance Tracking
-- Scheduled benchmark execution
-- Long-term trend analysis
-- Performance regression detection
-- Cross-version compatibility monitoring
-
-### PR Integration
-- Automatic benchmark execution
-- Performance comparison with baseline
-- Regression flagging
-- Performance summary comments
-
-## Security and Compliance
-
-### Automated Security
-- Trivy vulnerability scanning
+**Features:**
+- Multi-architecture builds (amd64, arm64, arm/v7)
+- Security vulnerability scanning with Trivy
+- Comprehensive image testing
+- Discord notifications
 - GitHub Security tab integration
-- Release artifact verification
-- Multi-platform binary validation
 
-### Quality Gates
-- All tests must pass
-- No significant performance regressions
-- Security scans must pass
-- Binaries must be functional
+**Output:**
+- Multi-arch images for all supported platforms
+- Security scan results in GitHub Security tab
 
-## Artifact Management
+## Docker Image Tags
 
-### Storage Strategy
-- **Benchmark Results**: 90-day retention
-- **Build Artifacts**: Platform-specific binaries
-- **Docker Images**: Versioned and latest tags
-- **Security Reports**: Vulnerability scan results
+### Automatic Tagging
 
-### Access Patterns
-- GitHub Releases for binaries
-- GitHub Container Registry for Docker images
-- GitHub Actions artifacts for CI data
-- GitHub Security tab for vulnerabilities
+The workflows automatically create appropriate tags based on the trigger:
 
-## Auto PR Creator Usage
+- **Main branch:** `latest`, `main`
+- **Version tags:** `v1.0.0`, `v1.0`, `v1`
+- **Pull requests:** `dev` (build only)
 
-### Automatic PR Creation
-Simply push to any matching branch:
+### Manual Tagging
+
+You can manually trigger builds with custom versions:
+
+1. Go to Actions → Docker Build (Simple)
+2. Click "Run workflow"
+3. Enter your desired version (e.g., `v2.0.0-beta`)
+4. Click "Run workflow"
+
+## Using the Docker Images
+
+### Pull Images
+
 ```bash
-git checkout -b test-new-feature
-git push origin test-new-feature
-# PR will be created automatically
+# Latest stable
+docker pull ghcr.io/maher-naija-pro/my-timeserie:latest
+
+# Specific version
+docker pull ghcr.io/maher-naija-pro/my-timeserie:v1.0.0
+
+# Main branch (development)
+docker pull ghcr.io/maher-naija-pro/my-timeserie:main
 ```
 
-### Manual Trigger
-1. Go to GitHub Actions
-2. Select "Auto PR Creator" workflow
-3. Click "Run workflow"
+### Run Containers
 
-### Configuration
+```bash
+# Basic run
+docker run -d \
+  --name timeseriesdb \
+  -p 8080:8080 \
+  ghcr.io/maher-naija-pro/my-timeserie:latest
 
-#### Branch Patterns
-Edit the workflow files to modify which branches trigger PR creation:
-```yaml
-branches:
-  - 'test*'      # All branches starting with 'test'
-  - 'feature*'   # All branches starting with 'feature'
-  - 'dev*'       # All branches starting with 'dev'
+# With persistent storage
+docker run -d \
+  --name timeseriesdb \
+  -p 8080:8080 \
+  -v $(pwd)/data:/app/data \
+  ghcr.io/maher-naija-pro/my-timeserie:latest
 ```
 
-#### PR Settings
-- **Draft**: All PRs are created as drafts
-- **Base**: Always targets `main` branch
-- **Title**: Auto-generated with branch name
-- **Body**: Simple template with checklist
+## Workflow Configuration
+
+### Environment Variables
+
+- `REGISTRY`: GitHub Container Registry (`ghcr.io`)
+- `IMAGE_NAME`: Repository name (auto-detected)
+
+### Required Secrets
+
+- `GITHUB_TOKEN`: Automatically provided by GitHub
+- `DISCORD_WEBHOOK`: For failure notifications (optional)
+
+### Permissions
+
+- `contents: read` - Read repository contents
+- `packages: write` - Push to container registry
+- `security-events: write` - Upload security scan results
+
+## Build Process
+
+### 1. Code Checkout
+- Clones the repository with full history
+- Sets up the build environment
+
+### 2. Docker Setup
+- Installs Docker Buildx for multi-platform builds
+- Logs into GitHub Container Registry
+
+### 3. Image Building
+- Builds Docker image using the Dockerfile
+- Applies appropriate tags and labels
+- Uses GitHub Actions cache for faster builds
+
+### 4. Image Testing
+- Pulls the built image
+- Starts a container
+- Tests basic functionality
+- Verifies health endpoint (if available)
+
+### 5. Security Scanning (Full workflow only)
+- Runs Trivy vulnerability scanner
+- Uploads results to GitHub Security tab
+
+### 6. Image Push
+- Pushes images to GitHub Container Registry
+- Only for main branch and tags (not PRs)
+
+## Monitoring and Notifications
+
+### Discord Notifications
+
+The workflows send notifications to Discord on success/failure:
+
+- **Success:** ✅ Docker Build Successful
+- **Failure:** 🚨 Docker Build Failed
+
+### GitHub Security Tab
+
+Security scan results are automatically uploaded to:
+- Repository → Security → Code scanning
+
+### Workflow Status
+
+Monitor workflow execution at:
+- Repository → Actions → Workflows
 
 ## Troubleshooting
 
 ### Common Issues
 
-**Build Failures:**
-- Check Go version compatibility
-- Verify platform-specific requirements
-- Review Docker configuration
+1. **Build Failures**
+   - Check the Actions tab for detailed logs
+   - Verify Dockerfile syntax
+   - Check for dependency issues
 
-**Benchmark Issues:**
-- Monitor timeout values
-- Check memory usage patterns
-- Verify benchmark isolation
+2. **Authentication Errors**
+   - Ensure `GITHUB_TOKEN` has proper permissions
+   - Check repository settings for Actions permissions
 
-**CI/CD Problems:**
-- Review workflow permissions
-- Check GitHub repository settings
-- Verify environment variables
+3. **Image Push Failures**
+   - Verify container registry permissions
+   - Check for duplicate tags
 
-**Auto PR Creator Issues:**
-- Check if branch name matches patterns
-- Verify GitHub Actions are enabled
-- Check workflow run logs for errors
-- If duplicates occur, check branch naming conflicts
+4. **Test Failures**
+   - Review container startup logs
+   - Check health endpoint configuration
+   - Verify port binding
 
-### Debug Strategies
+### Debug Mode
 
-**Local Debugging:**
-```bash
-# Build verification
-./scripts/build-test.sh
-
-# Benchmark isolation
-./scripts/run-benchmarks.sh --timeout 5m
-
-# Profile analysis
-go tool pprof cpu_profile.prof
+Enable debug logging by setting the secret:
+```
+ACTIONS_STEP_DEBUG=true
 ```
 
-**CI Debugging:**
-- Enable `ACTIONS_STEP_DEBUG` secret
-- Review workflow logs
-- Check artifact generation
+### Manual Testing
 
-**Performance Optimization:**
-- Use `auto-pr-creator-fast.yml` for maximum speed
-- Minimal checkout depth reduces execution time
+Test Docker builds locally:
+
+```bash
+# Build image
+docker build -t timeseriesdb:test .
+
+# Run container
+docker run -d -p 8080:8080 timeseriesdb:test
+
+# Test functionality
+curl http://localhost:8080/health
+```
 
 ## Best Practices
 
-### Development Workflow
-1. **Local Testing**: Always test builds and benchmarks locally
-2. **Performance Baseline**: Establish and maintain performance baselines
-3. **Regular Monitoring**: Watch for performance trends and regressions
-4. **Security Updates**: Regularly review and update dependencies
-5. **Branch Naming**: Use consistent patterns for test/feature branches
+### 1. Version Management
+- Use semantic versioning for releases
+- Tag releases with `v` prefix (e.g., `v1.0.0`)
+- Keep `latest` tag updated
 
-### CI/CD Management
-1. **Consistent Environments**: Use standardized Go versions and OS
-2. **Artifact Retention**: Maintain historical data for analysis
-3. **Failure Handling**: Ensure non-blocking benchmark execution
-4. **Documentation**: Keep workflows and processes documented
-5. **PR Management**: Review auto-created PRs promptly
+### 2. Security
+- Regularly update base images
+- Monitor security scan results
+- Review and address vulnerabilities
 
-## Future Enhancements
+### 3. Testing
+- Test images before pushing to production
+- Verify all endpoints work correctly
+- Check resource usage and performance
 
-### Planned Integrations
-1. **Performance Regression Alerts**: Automated notification system
-2. **Historical Dashboard**: Web-based performance visualization
-3. **Performance Budgets**: Automated constraint enforcement
-4. **Cross-Platform Benchmarking**: Multi-OS performance testing
-5. **Hardware Profiling**: Real-time resource monitoring
+### 4. Monitoring
+- Set up alerts for build failures
+- Monitor image pull statistics
+- Track security scan results
 
-### System Evolution
-1. **AI-Powered Analysis**: Machine learning for regression detection
-2. **Predictive Monitoring**: Performance trend forecasting
-3. **Integration APIs**: External system connectivity
-4. **Advanced Metrics**: Custom performance indicators
-5. **Smart PR Management**: AI-powered PR review and suggestions
+## Advanced Configuration
 
-## Support and Resources
+### Custom Build Arguments
 
-### Documentation
-- [Performance Guide](PERFORMANCE.md)
-- [Performance Monitoring](PERFORMANCE_MONITORING.md)
-- [Installation Guide](INSTALLATION.md)
+Modify the Dockerfile to accept additional build arguments:
 
-### Issue Reporting
-- GitHub Issues for CI/CD problems
-- Performance regression reports
-- Security vulnerability reports
+```dockerfile
+ARG CUSTOM_FEATURE=false
+ENV CUSTOM_FEATURE=${CUSTOM_FEATURE}
+```
 
-### Community
-- Regular performance reviews
-- Benchmark result sharing
-- Best practice discussions
+### Multi-Stage Builds
 
----
+The current Dockerfile uses multi-stage builds for optimization:
+- Builder stage compiles the Go application
+- Runtime stage creates the final image
 
-This integrated system ensures TimeSeriesDB maintains high quality standards across code, performance, and security while providing developers with comprehensive tools for local development and CI/CD integration.
+### Platform-Specific Builds
+
+The full workflow supports multiple architectures:
+- `linux/amd64` - Standard x86_64
+- `linux/arm64` - ARM 64-bit
+- `linux/arm/v7` - ARM 32-bit v7
+
+## Support
+
+For CI/CD related issues:
+
+1. Check the Actions tab for workflow logs
+2. Review this documentation
+3. Check GitHub Actions documentation
+4. Create an issue with workflow details
+
+## References
+
+- [GitHub Actions Documentation](https://docs.github.com/en/actions)
+- [Docker Buildx](https://docs.docker.com/buildx/)
+- [GitHub Container Registry](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry)
+- [Trivy Security Scanner](https://aquasecurity.github.io/trivy/)

@@ -7,6 +7,7 @@ import (
 	"sort"
 	"sync"
 	"time"
+	"timeseriesdb/internal/logger"
 )
 
 // Shard represents a storage shard with LSM tree architecture
@@ -31,6 +32,9 @@ type Shard struct {
 	// State
 	closed     bool
 	recovering bool
+
+	// Metrics
+	metrics *StorageMetrics
 }
 
 // ShardConfig holds configuration for a shard
@@ -46,7 +50,7 @@ type ShardConfig struct {
 }
 
 // NewShard creates a new storage shard
-func NewShard(config ShardConfig) (*Shard, error) {
+func NewShard(config ShardConfig, metrics *StorageMetrics) (*Shard, error) {
 	// Ensure directories exist
 	walDir := filepath.Join(config.DataDir, "wal")
 	segmentsDir := filepath.Join(config.DataDir, "segments")
@@ -63,13 +67,14 @@ func NewShard(config ShardConfig) (*Shard, error) {
 	wal, err := NewWAL(WALConfig{
 		Path:        filepath.Join(walDir, "shard.wal"),
 		MaxFileSize: config.MaxWALSize,
+		Metrics:     metrics,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create WAL: %w", err)
 	}
 
 	// Create WAL replay handler
-	walReplay := NewWALReplay(walDir)
+	walReplay := NewWALReplay(walDir, metrics)
 
 	// Create segment writer
 	segmentWriter, err := NewSegmentWriter(SegmentWriterConfig{
@@ -92,7 +97,7 @@ func NewShard(config ShardConfig) (*Shard, error) {
 		MaxSegmentSize:      config.MaxSegmentSize,
 		CompactionInterval:  config.CompactionInterval,
 		MaxConcurrent:       1,
-	}, segmentReader, segmentWriter)
+	}, segmentReader, segmentWriter, metrics)
 
 	// Create memstore with flush callback
 	memStore := NewMemStore(config.MaxMemTableSize, wal, func(memTable *MemTable) error {
@@ -108,7 +113,7 @@ func NewShard(config ShardConfig) (*Shard, error) {
 		}
 
 		return nil
-	})
+	}, metrics, config.ID)
 
 	shard := &Shard{
 		id:            config.ID,
@@ -124,6 +129,7 @@ func NewShard(config ShardConfig) (*Shard, error) {
 		config:        config,
 		closed:        false,
 		recovering:    false,
+		metrics:       metrics,
 	}
 
 	return shard, nil
@@ -182,6 +188,8 @@ func (s *Shard) Close() error {
 
 // Write writes data points to the shard
 func (s *Shard) Write(req WriteRequest) error {
+	startTime := time.Now()
+
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
@@ -193,11 +201,29 @@ func (s *Shard) Write(req WriteRequest) error {
 		return fmt.Errorf("shard is recovering")
 	}
 
-	return s.memStore.Write(req.SeriesID, req.Points)
+	// Record write operation
+	if s.metrics != nil {
+		s.metrics.RecordStorageWriteOperation(s.id, "shard_write")
+		s.metrics.RecordDataPointsWritten(s.id, len(req.Points))
+	}
+
+	err := s.memStore.Write(req.SeriesID, req.Points)
+
+	// Record write completion
+	if s.metrics != nil {
+		s.metrics.RecordStorageWriteLatency(s.id, "shard_write", time.Since(startTime))
+		if err != nil {
+			s.metrics.RecordStorageWriteError(s.id, "shard_write")
+		}
+	}
+
+	return err
 }
 
 // Read reads data points from the shard
 func (s *Shard) Read(req ReadRequest) ([]DataPoint, error) {
+	startTime := time.Now()
+
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
@@ -205,11 +231,19 @@ func (s *Shard) Read(req ReadRequest) ([]DataPoint, error) {
 		return nil, fmt.Errorf("shard is closed")
 	}
 
+	// Record read operation
+	if s.metrics != nil {
+		s.metrics.RecordStorageReadOperation(s.id, "shard_read")
+	}
+
 	var allPoints []DataPoint
 
 	// Read from memstore
 	memPoints, err := s.memStore.Read(req.SeriesID, req.Start, req.End)
 	if err != nil {
+		if s.metrics != nil {
+			s.metrics.RecordStorageReadError(s.id, "shard_read")
+		}
 		return nil, fmt.Errorf("failed to read from memstore: %w", err)
 	}
 	allPoints = append(allPoints, memPoints...)
@@ -217,6 +251,9 @@ func (s *Shard) Read(req ReadRequest) ([]DataPoint, error) {
 	// Read from segments
 	segments, err := s.segmentReader.ListSegments()
 	if err != nil {
+		if s.metrics != nil {
+			s.metrics.RecordStorageReadError(s.id, "shard_read")
+		}
 		return nil, fmt.Errorf("failed to list segments: %w", err)
 	}
 
@@ -264,6 +301,12 @@ func (s *Shard) Read(req ReadRequest) ([]DataPoint, error) {
 		allPoints = allPoints[:req.Limit]
 	}
 
+	// Record read completion
+	if s.metrics != nil {
+		s.metrics.RecordStorageReadLatency(s.id, "shard_read", time.Since(startTime))
+		s.metrics.RecordDataPointsRead(s.id, len(allPoints))
+	}
+
 	return allPoints, nil
 }
 
@@ -272,29 +315,51 @@ func (s *Shard) performRecovery() error {
 	s.recovering = true
 	defer func() { s.recovering = false }()
 
+	// Record recovery start
+	if s.metrics != nil {
+		s.metrics.RecordRecoveryStart()
+	}
+
+	startTime := time.Now()
+
 	// Replay WAL
 	result, err := s.walReplay.Replay()
 	if err != nil {
+		if s.metrics != nil {
+			s.metrics.RecordRecoveryComplete(startTime, err)
+		}
 		return fmt.Errorf("failed to replay WAL: %w", err)
 	}
 
 	if result.TotalCount == 0 {
+		// Record recovery completion even for no-op recovery
+		if s.metrics != nil {
+			s.metrics.RecordRecoveryComplete(startTime, nil)
+		}
 		return nil // No WAL files to recover
 	}
 
-	fmt.Printf("Recovering shard %s: %d entries, %d errors\n",
+	logger.Infof("Recovering shard %s: %d entries, %d errors",
 		s.id, result.TotalCount, result.ErrorCount)
 
 	// Reconstruct memstore from recovered data
 	for seriesID, points := range result.SeriesData {
 		if err := s.memStore.Write(seriesID, points); err != nil {
+			if s.metrics != nil {
+				s.metrics.RecordRecoveryComplete(startTime, err)
+			}
 			return fmt.Errorf("failed to write recovered data for series %s: %w", seriesID, err)
 		}
 	}
 
 	// Clean up old WAL files
 	if err := s.walReplay.CleanupOldWALs(24 * time.Hour); err != nil {
-		fmt.Printf("Warning: failed to cleanup old WAL files: %v\n", err)
+		logger.Warnf("Failed to cleanup old WAL files: %v", err)
+	}
+
+	// Record successful recovery completion
+	if s.metrics != nil {
+		s.metrics.RecordRecoveryComplete(startTime, nil)
 	}
 
 	return nil

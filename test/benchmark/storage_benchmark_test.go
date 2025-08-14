@@ -12,13 +12,20 @@ import (
 
 // BenchmarkWriteSinglePoint benchmarks writing a single point
 func BenchmarkWriteSinglePoint(b *testing.B) {
-	testFile := "benchmark_storage_test.tsv"
-	defer os.Remove(testFile)
+	// Create temporary directory for test
+	tempDir, err := os.MkdirTemp("", "benchmark_storage_test")
+	if err != nil {
+		b.Fatal(err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	testFile := tempDir + "/benchmark_storage_test.tsv"
 
 	storageConfig := config.StorageConfig{
 		DataFile:    testFile,
+		DataDir:     tempDir,
 		MaxFileSize: 1073741824, // 1GB
-		BackupDir:   "backups",
+		BackupDir:   tempDir + "/backups",
 		Compression: false,
 	}
 	storageInstance := storage.NewStorage(storageConfig)
@@ -42,13 +49,20 @@ func BenchmarkWriteSinglePoint(b *testing.B) {
 
 // BenchmarkWriteMultiplePoints benchmarks writing multiple points
 func BenchmarkWriteMultiplePoints(b *testing.B) {
-	testFile := "benchmark_storage_test.tsv"
-	defer os.Remove(testFile)
+	// Create temporary directory for test
+	tempDir, err := os.MkdirTemp("", "benchmark_storage_test")
+	if err != nil {
+		b.Fatal(err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	testFile := tempDir + "/benchmark_storage_test.tsv"
 
 	storageConfig := config.StorageConfig{
 		DataFile:    testFile,
+		DataDir:     tempDir,
 		MaxFileSize: 1073741824, // 1GB
-		BackupDir:   "backups",
+		BackupDir:   tempDir + "/backups",
 		Compression: false,
 	}
 	storageInstance := storage.NewStorage(storageConfig)
@@ -77,13 +91,20 @@ func BenchmarkWriteMultiplePoints(b *testing.B) {
 
 // BenchmarkWritePointWithManyFields benchmarks writing points with many fields
 func BenchmarkWritePointWithManyFields(b *testing.B) {
-	testFile := "benchmark_storage_test.tsv"
-	defer os.Remove(testFile)
+	// Create temporary directory for test
+	tempDir, err := os.MkdirTemp("", "benchmark_storage_test")
+	if err != nil {
+		b.Fatal(err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	testFile := tempDir + "/benchmark_storage_test.tsv"
 
 	storageConfig := config.StorageConfig{
 		DataFile:    testFile,
+		DataDir:     tempDir,
 		MaxFileSize: 1073741824, // 1GB
-		BackupDir:   "backups",
+		BackupDir:   tempDir + "/backups",
 		Compression: false,
 	}
 	storageInstance := storage.NewStorage(storageConfig)
@@ -112,13 +133,20 @@ func BenchmarkWritePointWithManyFields(b *testing.B) {
 
 // BenchmarkWritePointWithManyTags benchmarks writing points with many tags
 func BenchmarkWritePointWithManyTags(b *testing.B) {
-	testFile := "benchmark_storage_test.tsv"
-	defer os.Remove(testFile)
+	// Create temporary directory for test
+	tempDir, err := os.MkdirTemp("", "benchmark_storage_test")
+	if err != nil {
+		b.Fatal(err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	testFile := tempDir + "/benchmark_storage_test.tsv"
 
 	storageConfig := config.StorageConfig{
 		DataFile:    testFile,
+		DataDir:     tempDir,
 		MaxFileSize: 1073741824, // 1GB
-		BackupDir:   "backups",
+		BackupDir:   tempDir + "/backups",
 		Compression: false,
 	}
 	storageInstance := storage.NewStorage(storageConfig)
@@ -147,13 +175,20 @@ func BenchmarkWritePointWithManyTags(b *testing.B) {
 
 // BenchmarkConcurrentWrites benchmarks concurrent write operations
 func BenchmarkConcurrentWrites(b *testing.B) {
-	testFile := "benchmark_concurrent_test.tsv"
-	defer os.Remove(testFile)
+	// Create temporary directory for test
+	tempDir, err := os.MkdirTemp("", "benchmark_concurrent_test")
+	if err != nil {
+		b.Fatal(err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	testFile := tempDir + "/benchmark_concurrent_test.tsv"
 
 	storageConfig := config.StorageConfig{
 		DataFile:    testFile,
+		DataDir:     tempDir,
 		MaxFileSize: 1073741824, // 1GB
-		BackupDir:   "backups",
+		BackupDir:   tempDir + "/backups",
 		Compression: false,
 	}
 	storageInstance := storage.NewStorage(storageConfig)
@@ -187,13 +222,20 @@ func BenchmarkConcurrentWrites(b *testing.B) {
 func BenchmarkMemoryUsage(b *testing.B) {
 	b.ReportAllocs()
 
-	testFile := "benchmark_memory_test.tsv"
-	defer os.Remove(testFile)
+	// Create temporary directory for test
+	tempDir, err := os.MkdirTemp("", "benchmark_memory_test")
+	if err != nil {
+		b.Fatal(err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	testFile := tempDir + "/benchmark_memory_test.tsv"
 
 	storageConfig := config.StorageConfig{
 		DataFile:    testFile,
+		DataDir:     tempDir,
 		MaxFileSize: 1073741824, // 1GB
-		BackupDir:   "backups",
+		BackupDir:   tempDir + "/backups",
 		Compression: false,
 	}
 	storageInstance := storage.NewStorage(storageConfig)

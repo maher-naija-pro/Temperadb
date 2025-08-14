@@ -11,17 +11,20 @@ import (
 	"sort"
 	"strings"
 	"time"
+	"timeseriesdb/internal/logger"
 )
 
 // WALReplay handles replaying WAL files during recovery
 type WALReplay struct {
-	walDir string
+	walDir  string
+	metrics *StorageMetrics
 }
 
 // NewWALReplay creates a new WAL replay handler
-func NewWALReplay(walDir string) *WALReplay {
+func NewWALReplay(walDir string, metrics *StorageMetrics) *WALReplay {
 	return &WALReplay{
-		walDir: walDir,
+		walDir:  walDir,
+		metrics: metrics,
 	}
 }
 
@@ -33,31 +36,45 @@ type ReplayResult struct {
 	TotalCount int
 }
 
-// Replay replays all WAL files to recover data
+// Replay replays all WAL files and returns the recovered data
 func (wr *WALReplay) Replay() (*ReplayResult, error) {
-	result := &ReplayResult{
-		SeriesData: make(map[string][]DataPoint),
-	}
+	startTime := time.Now()
 
-	// Get all WAL files in chronological order
+	// Get list of WAL files
 	files, err := wr.getWALFiles()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get WAL files: %w", err)
 	}
 
-	// Replay each WAL file
-	for _, filePath := range files {
-		if err := wr.replayFile(filePath, result); err != nil {
-			result.ErrorCount++
-			// Continue with other files even if one fails
-		}
-		result.TotalCount++
+	// Safety check to prevent processing too many files
+	if len(files) > 1000 {
+		return nil, fmt.Errorf("too many WAL files to replay: %d (max: 1000)", len(files))
 	}
 
-	// Sort all entries by timestamp to maintain order
-	sort.Slice(result.Entries, func(i, j int) bool {
-		return result.Entries[i].Timestamp.Before(result.Entries[j].Timestamp)
-	})
+	result := &ReplayResult{
+		Entries:    make([]WALEntry, 0),
+		SeriesData: make(map[string][]DataPoint),
+		ErrorCount: 0,
+		TotalCount: 0,
+	}
+
+	// Replay each file
+	for _, filePath := range files {
+		if err := wr.replayFile(filePath, result); err != nil {
+			// Record corruption error if available
+			if wr.metrics != nil {
+				wr.metrics.RecordWALCorruptionError()
+			}
+			result.ErrorCount++
+			continue
+		}
+	}
+
+	// Update metrics
+	if wr.metrics != nil {
+		wr.metrics.RecordWALRecoveryComplete(startTime, result.TotalCount, nil)
+		wr.metrics.RecordWALEntriesRead(result.TotalCount)
+	}
 
 	return result, nil
 }
@@ -168,30 +185,35 @@ func (wr *WALReplay) ValidateEntry(entry WALEntry) bool {
 	return entry.Checksum == expectedChecksum
 }
 
-// CleanupOldWALs removes old WAL files that are no longer needed
+// CleanupOldWALs removes WAL files older than the specified duration
 func (wr *WALReplay) CleanupOldWALs(maxAge time.Duration) error {
 	files, err := wr.getWALFiles()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get WAL files for cleanup: %w", err)
 	}
 
-	cutoff := time.Now().Add(-maxAge)
+	cutoffTime := time.Now().Add(-maxAge)
+	var lastError error
 
 	for _, filePath := range files {
-		stat, err := os.Stat(filePath)
+		// Check file age
+		info, err := os.Stat(filePath)
 		if err != nil {
+			logger.Warnf("Failed to stat WAL file %s: %v", filePath, err)
 			continue
 		}
 
-		if stat.ModTime().Before(cutoff) {
+		if info.ModTime().Before(cutoffTime) {
 			if err := os.Remove(filePath); err != nil {
-				// Log error but continue with cleanup
-				fmt.Printf("Failed to remove old WAL file %s: %v\n", filePath, err)
+				logger.Warnf("Failed to remove old WAL file %s: %v", filePath, err)
+				lastError = err
+			} else {
+				logger.Debugf("Removed old WAL file: %s", filePath)
 			}
 		}
 	}
 
-	return nil
+	return lastError
 }
 
 // GetWALStats returns statistics about WAL files

@@ -12,7 +12,7 @@ import (
 
 func TestNewServer(t *testing.T) {
 	defer metrics.Reset()
-	
+
 	// Create test configuration
 	cfg := helpers.Config.CreateTestConfig(t)
 	cfg.Server = config.ServerConfig{
@@ -45,6 +45,15 @@ func TestNewServer(t *testing.T) {
 		t.Error("HTTP server should not be nil")
 	}
 
+	// Verify server metrics are initialized
+	if server.startTime.IsZero() {
+		t.Error("Server start time should be initialized")
+	}
+
+	if server.status != 1 {
+		t.Errorf("Expected server status 1 (starting), got %d", server.status)
+	}
+
 	// Verify HTTP server configuration
 	if server.httpServer.Addr != ":8080" {
 		t.Errorf("Expected server address ':8080', got '%s'", server.httpServer.Addr)
@@ -68,11 +77,11 @@ func TestNewServer(t *testing.T) {
 
 func TestServerStart(t *testing.T) {
 	defer metrics.Reset()
-	
+
 	// Create test configuration with a different port
 	cfg := helpers.Config.CreateTestConfig(t)
 	cfg.Server = config.ServerConfig{
-		Port:         "8081",
+		Port:         "8085",
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 5 * time.Second,
 		IdleTimeout:  10 * time.Second,
@@ -95,11 +104,11 @@ func TestServerStart(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 
 	// Test if server is responding
-	resp, err := http.Get("http://localhost:8081/metrics")
+	resp, err := http.Get("http://localhost:8085/metrics")
 	if err != nil {
 		// Server might not be ready yet, wait a bit more
 		time.Sleep(100 * time.Millisecond)
-		resp, err = http.Get("http://localhost:8081/metrics")
+		resp, err = http.Get("http://localhost:8085/metrics")
 	}
 
 	if err == nil {
@@ -132,7 +141,7 @@ func TestServerStart(t *testing.T) {
 
 func TestServerClose(t *testing.T) {
 	defer metrics.Reset()
-	
+
 	// Create test configuration
 	cfg := helpers.Config.CreateTestConfig(t)
 	cfg.Server = config.ServerConfig{
@@ -154,18 +163,25 @@ func TestServerClose(t *testing.T) {
 		t.Errorf("Failed to close server: %v", err)
 	}
 
+	// Verify server status is updated
+	if server.status != 4 {
+		t.Errorf("Expected server status 4 (stopped), got %d", server.status)
+	}
+
 	// Test that storage is closed
 	// Note: We can't directly test if storage is closed, but we can verify the method doesn't panic
 }
 
 func TestServerCloseNilStorage(t *testing.T) {
 	defer metrics.Reset()
-	
+
 	// Create a server with nil storage to test edge case
 	server := &Server{
 		httpServer: &http.Server{},
 		storage:    nil,
 		config:     &config.Config{},
+		startTime:  time.Now(),
+		status:     1,
 	}
 
 	// This should not panic
@@ -173,11 +189,16 @@ func TestServerCloseNilStorage(t *testing.T) {
 	if err != nil {
 		t.Errorf("Close should not return error when storage is nil: %v", err)
 	}
+
+	// Verify server status is updated
+	if server.status != 4 {
+		t.Errorf("Expected server status 4 (stopped), got %d", server.status)
+	}
 }
 
 func TestServerWithInvalidConfig(t *testing.T) {
 	defer metrics.Reset()
-	
+
 	// Test with nil config
 	_, err := NewServer(nil)
 	if err == nil {
@@ -187,7 +208,7 @@ func TestServerWithInvalidConfig(t *testing.T) {
 
 func TestServerConfigurationValidation(t *testing.T) {
 	defer metrics.Reset()
-	
+
 	// Create test configuration
 	cfg := helpers.Config.CreateTestConfig(t)
 	cfg.Server = config.ServerConfig{
@@ -220,7 +241,7 @@ func TestServerConfigurationValidation(t *testing.T) {
 
 func TestServerConcurrentAccess(t *testing.T) {
 	defer metrics.Reset()
-	
+
 	// Create test configuration
 	cfg := helpers.Config.CreateTestConfig(t)
 	cfg.Server = config.ServerConfig{
@@ -262,7 +283,7 @@ func TestServerConcurrentAccess(t *testing.T) {
 
 func TestServerMemoryLeaks(t *testing.T) {
 	defer metrics.Reset()
-	
+
 	// Create and destroy multiple servers to check for memory leaks
 	for i := 0; i < 10; i++ {
 		cfg := helpers.Config.CreateTestConfig(t)
@@ -280,5 +301,385 @@ func TestServerMemoryLeaks(t *testing.T) {
 
 		// Close immediately
 		server.Close()
+	}
+}
+
+func TestServerShutdown(t *testing.T) {
+	defer metrics.Reset()
+
+	// Create test configuration
+	cfg := helpers.Config.CreateTestConfig(t)
+	cfg.Server = config.ServerConfig{
+		Port:         "8086",
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 5 * time.Second,
+		IdleTimeout:  10 * time.Second,
+	}
+
+	// Create server
+	server, err := NewServer(cfg)
+	if err != nil {
+		t.Fatalf("Failed to create server: %v", err)
+	}
+	defer server.Close()
+
+	// Test shutdown with context
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	err = server.Shutdown(ctx)
+	if err != nil {
+		t.Errorf("Expected successful shutdown, got error: %v", err)
+	}
+}
+
+func TestServerShutdownTimeout(t *testing.T) {
+	defer metrics.Reset()
+
+	// Create test configuration
+	cfg := helpers.Config.CreateTestConfig(t)
+	cfg.Server = config.ServerConfig{
+		Port:         "8087",
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 5 * time.Second,
+		IdleTimeout:  10 * time.Second,
+	}
+
+	// Create server
+	server, err := NewServer(cfg)
+	if err != nil {
+		t.Fatalf("Failed to create server: %v", err)
+	}
+	defer server.Close()
+
+	// Test shutdown with very short timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Nanosecond)
+	defer cancel()
+
+	// Wait a bit for the context to expire
+	time.Sleep(1 * time.Millisecond)
+
+	err = server.Shutdown(ctx)
+	if err == nil {
+		t.Error("Expected timeout error during shutdown")
+	}
+}
+
+func TestServerIncrementDecrementConnections(t *testing.T) {
+	defer metrics.Reset()
+
+	// Create test configuration
+	cfg := helpers.Config.CreateTestConfig(t)
+	cfg.Server = config.ServerConfig{
+		Port:         "8088",
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 5 * time.Second,
+		IdleTimeout:  10 * time.Second,
+	}
+
+	// Create server
+	server, err := NewServer(cfg)
+	if err != nil {
+		t.Fatalf("Failed to create server: %v", err)
+	}
+	defer server.Close()
+
+	// Test initial connection count
+	initialCount := server.GetActiveConnections()
+	if initialCount != 0 {
+		t.Errorf("Expected initial connection count 0, got %d", initialCount)
+	}
+
+	// Test incrementing connections
+	server.IncrementConnection()
+	server.IncrementConnection()
+
+	count := server.GetActiveConnections()
+	if count != 2 {
+		t.Errorf("Expected connection count 2, got %d", count)
+	}
+
+	// Test decrementing connections
+	server.DecrementConnection()
+
+	count = server.GetActiveConnections()
+	if count != 1 {
+		t.Errorf("Expected connection count 1, got %d", count)
+	}
+
+	// Test decrementing below zero (should not go negative)
+	server.DecrementConnection()
+	server.DecrementConnection()
+
+	count = server.GetActiveConnections()
+	if count != 0 {
+		t.Errorf("Expected connection count 0, got %d", count)
+	}
+}
+
+func TestServerHealthStatus(t *testing.T) {
+	defer metrics.Reset()
+
+	// Create test configuration
+	cfg := helpers.Config.CreateTestConfig(t)
+	cfg.Server = config.ServerConfig{
+		Port:         "8089",
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 5 * time.Second,
+		IdleTimeout:  10 * time.Second,
+	}
+
+	// Create server
+	server, err := NewServer(cfg)
+	if err != nil {
+		t.Fatalf("Failed to create server: %v", err)
+	}
+	defer server.Close()
+
+	// Test setting health status to false
+	server.SetHealth(false)
+
+	// Test setting health status to true
+	server.SetHealth(true)
+
+	// Verify metrics are updated (we can't directly test the metrics values in tests)
+	// but we can verify the method doesn't panic
+}
+
+func TestServerGetMetrics(t *testing.T) {
+	defer metrics.Reset()
+
+	// Create test configuration
+	cfg := helpers.Config.CreateTestConfig(t)
+	cfg.Server = config.ServerConfig{
+		Port:         "8090",
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 5 * time.Second,
+		IdleTimeout:  10 * time.Second,
+	}
+
+	// Create server
+	server, err := NewServer(cfg)
+	if err != nil {
+		t.Fatalf("Failed to create server: %v", err)
+	}
+	defer server.Close()
+
+	// Test getting metrics
+	metrics := server.GetMetrics()
+	if metrics == nil {
+		t.Error("Expected metrics to be returned")
+	}
+}
+
+func TestServerGetID(t *testing.T) {
+	defer metrics.Reset()
+
+	// Create test configuration
+	cfg := helpers.Config.CreateTestConfig(t)
+	cfg.Server = config.ServerConfig{
+		Port:         "8091",
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 5 * time.Second,
+		IdleTimeout:  10 * time.Second,
+	}
+
+	// Create server
+	server, err := NewServer(cfg)
+	if err != nil {
+		t.Fatalf("Failed to create server: %v", err)
+	}
+	defer server.Close()
+
+	// Test that server has a start time (indirect way to verify server was created)
+	if server.startTime.IsZero() {
+		t.Error("Expected server start time to be set")
+	}
+}
+
+func TestServerIsClosed(t *testing.T) {
+	defer metrics.Reset()
+
+	// Create test configuration
+	cfg := helpers.Config.CreateTestConfig(t)
+	cfg.Server = config.ServerConfig{
+		Port:         "8092",
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 5 * time.Second,
+		IdleTimeout:  10 * time.Second,
+	}
+
+	// Create server
+	server, err := NewServer(cfg)
+	if err != nil {
+		t.Fatalf("Failed to create server: %v", err)
+	}
+
+	// Test initial status (should be starting = 1)
+	if server.status != 1 {
+		t.Errorf("Expected initial status 1 (starting), got %d", server.status)
+	}
+
+	// Close server
+	server.Close()
+
+	// Test status after close (should be stopped = 4)
+	if server.status != 4 {
+		t.Errorf("Expected status 4 (stopped) after Close(), got %d", server.status)
+	}
+}
+
+func TestServerCollectMetrics(t *testing.T) {
+	defer metrics.Reset()
+
+	// Create test configuration
+	cfg := helpers.Config.CreateTestConfig(t)
+	cfg.Server = config.ServerConfig{
+		Port:         "8093",
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 5 * time.Second,
+		IdleTimeout:  10 * time.Second,
+	}
+
+	// Create server
+	server, err := NewServer(cfg)
+	if err != nil {
+		t.Fatalf("Failed to create server: %v", err)
+	}
+	defer server.Close()
+
+	// Test metrics collection
+	server.collectMetrics()
+
+	// Verify metrics were collected
+	metrics := server.GetMetrics()
+	if metrics == nil {
+		t.Error("Expected metrics to be available after collection")
+	}
+}
+
+func TestServerInitializeMetrics(t *testing.T) {
+	defer metrics.Reset()
+
+	// Create test configuration
+	cfg := helpers.Config.CreateTestConfig(t)
+	cfg.Server = config.ServerConfig{
+		Port:         "8094",
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 5 * time.Second,
+		IdleTimeout:  10 * time.Second,
+	}
+
+	// Create server
+	server, err := NewServer(cfg)
+	if err != nil {
+		t.Fatalf("Failed to create server: %v", err)
+	}
+	defer server.Close()
+
+	// Test metrics initialization
+	server.initializeMetrics()
+
+	// Verify metrics were initialized
+	metrics := server.GetMetrics()
+	if metrics == nil {
+		t.Error("Expected metrics to be available after initialization")
+	}
+}
+
+func TestServerWithNilStorage(t *testing.T) {
+	defer metrics.Reset()
+
+	// Create test configuration with nil storage
+	cfg := helpers.Config.CreateTestConfig(t)
+	cfg.Server = config.ServerConfig{
+		Port:         "8095",
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 5 * time.Second,
+		IdleTimeout:  10 * time.Second,
+	}
+
+	// Create server
+	server, err := NewServer(cfg)
+	if err != nil {
+		t.Fatalf("Failed to create server: %v", err)
+	}
+	defer server.Close()
+
+	// Test that server can be created with nil storage
+	if server == nil {
+		t.Fatal("Expected server to be created even with nil storage")
+	}
+}
+
+func TestServerMultipleCloseCalls(t *testing.T) {
+	defer metrics.Reset()
+
+	// Create test configuration
+	cfg := helpers.Config.CreateTestConfig(t)
+	cfg.Server = config.ServerConfig{
+		Port:         "8096",
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 5 * time.Second,
+		IdleTimeout:  10 * time.Second,
+	}
+
+	// Create server
+	server, err := NewServer(cfg)
+	if err != nil {
+		t.Fatalf("Failed to create server: %v", err)
+	}
+
+	// Test multiple close calls (should not panic)
+	server.Close()
+	server.Close()
+	server.Close()
+
+	// Verify server is marked as closed
+	if server.status != 4 {
+		t.Error("Expected server status to be 4 (stopped) after multiple Close() calls")
+	}
+}
+
+func TestServerConcurrentClose(t *testing.T) {
+	defer metrics.Reset()
+
+	// Create test configuration
+	cfg := helpers.Config.CreateTestConfig(t)
+	cfg.Server = config.ServerConfig{
+		Port:         "8097",
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 5 * time.Second,
+		IdleTimeout:  10 * time.Second,
+	}
+
+	// Create server
+	server, err := NewServer(cfg)
+	if err != nil {
+		t.Fatalf("Failed to create server: %v", err)
+	}
+
+	// Test concurrent close calls
+	done := make(chan bool, 5)
+	for i := 0; i < 5; i++ {
+		go func() {
+			server.Close()
+			done <- true
+		}()
+	}
+
+	// Wait for all goroutines to complete
+	for i := 0; i < 5; i++ {
+		select {
+		case <-done:
+			// Success
+		case <-time.After(5 * time.Second):
+			t.Fatal("Timeout waiting for concurrent close test")
+		}
+	}
+
+	// Verify server is marked as closed
+	if server.status != 4 {
+		t.Error("Expected server status to be 4 (stopped) after concurrent Close() calls")
 	}
 }

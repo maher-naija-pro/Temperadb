@@ -20,7 +20,7 @@ type MetricsMiddleware struct {
 // NewMetricsMiddleware creates a new metrics middleware
 func NewMetricsMiddleware() *MetricsMiddleware {
 	return &MetricsMiddleware{
-		requests: metrics.HTTPRequests,
+		requests: metrics.HTTPRequestsTotal,
 		duration: metrics.HTTPRequestDuration,
 	}
 }
@@ -30,7 +30,11 @@ func (m *MetricsMiddleware) Wrap(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 
-		// Create a response writer wrapper to capture status code
+		// Track requests in flight
+		metrics.HTTPRequestsInFlight.WithLabelValues().Inc()
+		defer metrics.HTTPRequestsInFlight.WithLabelValues().Dec()
+
+		// Create a response writer wrapper to capture status code and response size
 		wrapped := &responseWriter{ResponseWriter: w, statusCode: http.StatusOK}
 
 		// Call the next handler
@@ -42,13 +46,19 @@ func (m *MetricsMiddleware) Wrap(next http.Handler) http.Handler {
 
 		m.requests.WithLabelValues(r.Method, r.URL.Path, statusCode).Inc()
 		m.duration.WithLabelValues(r.Method, r.URL.Path).Observe(duration)
+
+		// Record response size if available
+		if wrapped.responseSize > 0 {
+			metrics.HTTPResponseSize.WithLabelValues(r.Method, r.URL.Path).Observe(float64(wrapped.responseSize))
+		}
 	})
 }
 
-// responseWriter wraps http.ResponseWriter to capture status code
+// responseWriter wraps http.ResponseWriter to capture status code and response size
 type responseWriter struct {
 	http.ResponseWriter
-	statusCode int
+	statusCode   int
+	responseSize int
 }
 
 func (rw *responseWriter) WriteHeader(code int) {
@@ -57,6 +67,7 @@ func (rw *responseWriter) WriteHeader(code int) {
 }
 
 func (rw *responseWriter) Write(b []byte) (int, error) {
+	rw.responseSize += len(b)
 	return rw.ResponseWriter.Write(b)
 }
 

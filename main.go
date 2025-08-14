@@ -5,12 +5,21 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"runtime"
 	"syscall"
 	"time"
 	"timeseriesdb/internal/config"
 	"timeseriesdb/internal/errors"
 	"timeseriesdb/internal/logger"
+	"timeseriesdb/internal/metrics"
 	"timeseriesdb/internal/server"
+)
+
+// Build-time variables (set via ldflags)
+var (
+	Version    = "dev"
+	BuildTime  = "unknown"
+	CommitHash = "unknown"
 )
 
 func main() {
@@ -35,6 +44,10 @@ func main() {
 			logger.Fatalf("Failed to create server: %v", err)
 		}
 	}
+
+	// Initialize build info metrics
+	metrics.BuildInfo.WithLabelValues(Version, CommitHash, "main", runtime.Version()).Set(1)
+	metrics.APIVersion.WithLabelValues(Version).Set(1)
 
 	// Setup graceful shutdown
 	ctx, cancel := context.WithCancel(context.Background())

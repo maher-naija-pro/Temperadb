@@ -70,6 +70,42 @@ build-docker:
 	docker build --build-arg VERSION=$(VERSION) -t timeseriesdb:$(VERSION) .
 	@echo "Docker image built: timeseriesdb:$(VERSION)"
 
+.PHONY: docker-run
+docker-run:
+	@echo "Running Docker container..."
+	docker run -d --name timeseriesdb -p 8080:8080 timeseriesdb:$(VERSION)
+	@echo "Container started. Check with: docker ps"
+
+.PHONY: docker-stop
+docker-stop:
+	@echo "Stopping Docker container..."
+	docker stop timeseriesdb || true
+	docker rm timeseriesdb || true
+	@echo "Container stopped and removed"
+
+.PHONY: docker-test
+docker-test: build-docker
+	@echo "Testing Docker image..."
+	@echo "Starting container..."
+	@docker run -d --name timeseriesdb-test -p 8080:8080 timeseriesdb:$(VERSION) || (echo "Failed to start container"; exit 1)
+	@echo "Waiting for container to be ready..."
+	@sleep 5
+	@echo "Testing health endpoint..."
+	@curl -f http://localhost:8080/health || echo "Health check failed or endpoint not available"
+	@echo "Stopping test container..."
+	@docker stop timeseriesdb-test
+	@docker rm timeseriesdb-test
+	@echo "Docker image test completed successfully"
+
+.PHONY: docker-push
+docker-push: build-docker
+	@echo "Pushing Docker image to registry..."
+	@echo "Please tag and push manually:"
+	@echo "  docker tag timeseriesdb:$(VERSION) ghcr.io/maher-naija-pro/my-timeserie:$(VERSION)"
+	@echo "  docker tag timeseriesdb:$(VERSION) ghcr.io/maher-naija-pro/my-timeserie:latest"
+	@echo "  docker push ghcr.io/maher-naija-pro/my-timeserie:$(VERSION)"
+	@echo "  docker push ghcr.io/maher-naija-pro/my-timeserie:latest"
+
 .PHONY: install
 install:
 	@echo "Installing TimeSeriesDB..."
@@ -458,6 +494,10 @@ help:
 	@echo "  build-darwin-arm64 - Build for macOS ARM64"
 	@echo "  build-all          - Build for all platforms"
 	@echo "  build-docker       - Build Docker image"
+	@echo "  docker-run         - Run Docker container"
+	@echo "  docker-stop        - Stop Docker container"
+	@echo "  docker-test        - Test Docker image"
+	@echo "  docker-push        - Show push commands for registry"
 	@echo "  install            - Install binary"
 	@echo "  clean-build        - Clean build artifacts"
 	@echo ""

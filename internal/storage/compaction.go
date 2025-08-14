@@ -6,6 +6,7 @@ import (
 	"sort"
 	"sync"
 	"time"
+	"timeseriesdb/internal/logger"
 )
 
 // CompactionManager manages the compaction of segments
@@ -18,6 +19,7 @@ type CompactionManager struct {
 	compactionChan chan compactionTask
 	stopChan       chan struct{}
 	running        bool
+	metrics        *StorageMetrics
 }
 
 // compactionTask represents a compaction job
@@ -39,7 +41,7 @@ type CompactionConfig struct {
 }
 
 // NewCompactionManager creates a new compaction manager
-func NewCompactionManager(config CompactionConfig, reader SegmentReaderInterface, writer SegmentWriterInterface) *CompactionManager {
+func NewCompactionManager(config CompactionConfig, reader SegmentReaderInterface, writer SegmentWriterInterface, metrics *StorageMetrics) *CompactionManager {
 	// Initialize compaction levels
 	levels := make([]*CompactionLevel, config.MaxLevels)
 	for i := 0; i < config.MaxLevels; i++ {
@@ -59,6 +61,7 @@ func NewCompactionManager(config CompactionConfig, reader SegmentReaderInterface
 		compactionChan: make(chan compactionTask, 100),
 		stopChan:       make(chan struct{}),
 		running:        false,
+		metrics:        metrics,
 	}
 }
 
@@ -113,6 +116,18 @@ func (cm *CompactionManager) AddSegment(segment *Segment) error {
 		return cm.levels[level].Segments[i].CreatedAt.Before(cm.levels[level].Segments[j].CreatedAt)
 	})
 
+	// Update metrics
+	if cm.metrics != nil {
+		cm.metrics.RecordSegmentCount(level, len(cm.levels[level].Segments))
+
+		// Calculate total size for this level
+		totalSize := int64(0)
+		for _, seg := range cm.levels[level].Segments {
+			totalSize += seg.Size
+		}
+		cm.metrics.RecordSegmentSize(level, totalSize)
+	}
+
 	// Check if compaction is needed
 	if cm.shouldCompactLevel(level) {
 		cm.scheduleLevelCompaction(level)
@@ -155,7 +170,7 @@ func (cm *CompactionManager) scheduleLevelCompaction(level int) {
 		// Task scheduled successfully
 	default:
 		// Channel full, log warning
-		fmt.Printf("Compaction task queue full, level %d compaction delayed\n", level)
+		logger.Warnf("Compaction task queue full, level %d compaction delayed", level)
 	}
 }
 
@@ -192,16 +207,33 @@ func (cm *CompactionManager) compactionWorker() {
 		select {
 		case task := <-cm.compactionChan:
 			if err := cm.processCompactionTask(task); err != nil {
-				fmt.Printf("Compaction task failed: %v\n", err)
+				logger.Errorf("Compaction task failed: %v", err)
 			}
 		case <-cm.stopChan:
-			return
+			// Process any remaining tasks before stopping
+			for {
+				select {
+				case task := <-cm.compactionChan:
+					if err := cm.processCompactionTask(task); err != nil {
+						logger.Errorf("Compaction task failed during shutdown: %v", err)
+					}
+				default:
+					return
+				}
+			}
 		}
 	}
 }
 
 // processCompactionTask processes a single compaction task
 func (cm *CompactionManager) processCompactionTask(task compactionTask) error {
+	startTime := time.Now()
+
+	// Record compaction start
+	if cm.metrics != nil {
+		cm.metrics.RecordCompactionStart()
+	}
+
 	// Read all segments in the task
 	var allPoints map[string][]DataPoint
 	allPoints = make(map[string][]DataPoint)
@@ -209,6 +241,9 @@ func (cm *CompactionManager) processCompactionTask(task compactionTask) error {
 	for _, segment := range task.Segments {
 		_, results, err := cm.segmentReader.ReadSegment(segment.Path)
 		if err != nil {
+			if cm.metrics != nil {
+				cm.metrics.RecordCompactionError()
+			}
 			return fmt.Errorf("failed to read segment %s: %w", segment.Path, err)
 		}
 
@@ -251,17 +286,28 @@ func (cm *CompactionManager) processCompactionTask(task compactionTask) error {
 	// Write new segment
 	newSegment, err := cm.segmentWriter.WriteMemTable(memTable)
 	if err != nil {
+		if cm.metrics != nil {
+			cm.metrics.RecordCompactionError()
+		}
 		return fmt.Errorf("failed to write compacted segment: %w", err)
 	}
 
 	// Remove old segments and add new one
 	if err := cm.replaceSegments(task.Level, task.Segments, newSegment); err != nil {
+		if cm.metrics != nil {
+			cm.metrics.RecordCompactionError()
+		}
 		return fmt.Errorf("failed to replace segments: %w", err)
 	}
 
 	// Try to promote to next level if possible
 	if task.Level < len(cm.levels)-1 {
 		cm.tryPromoteSegment(task.Level, newSegment)
+	}
+
+	// Record compaction completion
+	if cm.metrics != nil {
+		cm.metrics.RecordCompactionComplete(startTime, nil)
 	}
 
 	return nil
@@ -299,10 +345,22 @@ func (cm *CompactionManager) replaceSegments(level int, oldSegments []*Segment, 
 
 	cm.levels[level].Segments = newSegments
 
+	// Update metrics
+	if cm.metrics != nil {
+		cm.metrics.RecordSegmentCount(level, len(newSegments))
+
+		// Calculate total size for this level
+		totalSize := int64(0)
+		for _, seg := range newSegments {
+			totalSize += seg.Size
+		}
+		cm.metrics.RecordSegmentSize(level, totalSize)
+	}
+
 	// Delete old segment files
 	for _, segment := range oldSegments {
 		if err := os.Remove(segment.Path); err != nil {
-			fmt.Printf("Failed to remove old segment file %s: %v\n", segment.Path, err)
+			logger.Warnf("Failed to remove old segment file %s: %v", segment.Path, err)
 		}
 	}
 
@@ -317,8 +375,10 @@ func (cm *CompactionManager) tryPromoteSegment(currentLevel int, segment *Segmen
 
 	nextLevel := currentLevel + 1
 	if segment.Size <= cm.levels[nextLevel].MaxSize {
-		// Remove from current level
 		cm.mu.Lock()
+		defer cm.mu.Unlock()
+
+		// Remove from current level
 		levelData := cm.levels[currentLevel]
 		newSegments := make([]*Segment, 0, len(levelData.Segments))
 		for _, s := range levelData.Segments {
@@ -333,7 +393,25 @@ func (cm *CompactionManager) tryPromoteSegment(currentLevel int, segment *Segmen
 		sort.Slice(cm.levels[nextLevel].Segments, func(i, j int) bool {
 			return cm.levels[nextLevel].Segments[i].CreatedAt.Before(cm.levels[nextLevel].Segments[j].CreatedAt)
 		})
-		cm.mu.Unlock()
+
+		// Update metrics for both levels
+		if cm.metrics != nil {
+			cm.metrics.RecordSegmentCount(currentLevel, len(newSegments))
+			cm.metrics.RecordSegmentCount(nextLevel, len(cm.levels[nextLevel].Segments))
+
+			// Calculate total sizes for both levels
+			currentTotalSize := int64(0)
+			for _, seg := range newSegments {
+				currentTotalSize += seg.Size
+			}
+			cm.metrics.RecordSegmentSize(currentLevel, currentTotalSize)
+
+			nextTotalSize := int64(0)
+			for _, seg := range cm.levels[nextLevel].Segments {
+				nextTotalSize += seg.Size
+			}
+			cm.metrics.RecordSegmentSize(nextLevel, nextTotalSize)
+		}
 	}
 }
 

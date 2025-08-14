@@ -3,8 +3,6 @@ package ingestion
 import (
 	"time"
 
-	"timeseriesdb/internal/metrics"
-
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -24,12 +22,33 @@ type Metrics struct {
 // NewMetrics creates a new Metrics instance
 func NewMetrics() *Metrics {
 	return &Metrics{
-		IngestedPoints:     metrics.IngestedPoints,
-		IngestedBatches:    metrics.IngestedBatches,
-		WriteErrors:        metrics.WriteErrors,
-		IngestionLatency:   metrics.IngestionLatency,
-		BatchQueueWaitTime: metrics.BatchQueueWaitTime,
-		WALAppendLatency:   metrics.WALAppendLatency,
+		IngestedPoints: prometheus.NewCounter(prometheus.CounterOpts{
+			Name: "ingested_points_total",
+			Help: "Total number of ingested data points",
+		}),
+		IngestedBatches: prometheus.NewCounter(prometheus.CounterOpts{
+			Name: "ingested_batches_total",
+			Help: "Total number of ingested batches",
+		}),
+		WriteErrors: prometheus.NewCounter(prometheus.CounterOpts{
+			Name: "write_errors_total",
+			Help: "Total number of write errors",
+		}),
+		IngestionLatency: prometheus.NewHistogram(prometheus.HistogramOpts{
+			Name:    "ingestion_latency_seconds",
+			Help:    "Time spent ingesting data",
+			Buckets: prometheus.DefBuckets,
+		}),
+		BatchQueueWaitTime: prometheus.NewHistogram(prometheus.HistogramOpts{
+			Name:    "batch_queue_wait_time_seconds",
+			Help:    "Time spent waiting in batch queue",
+			Buckets: prometheus.DefBuckets,
+		}),
+		WALAppendLatency: prometheus.NewHistogram(prometheus.HistogramOpts{
+			Name:    "wal_append_latency_seconds",
+			Help:    "Time spent appending to WAL",
+			Buckets: prometheus.DefBuckets,
+		}),
 	}
 }
 

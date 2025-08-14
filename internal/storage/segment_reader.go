@@ -35,6 +35,10 @@ func NewSegmentReader(segmentsDir string) *SegmentReader {
 
 // ReadSegment reads all data from a specific segment
 func (sr *SegmentReader) ReadSegment(segmentPath string) (*Segment, []SegmentReadResult, error) {
+	if segmentPath == "" {
+		return nil, nil, fmt.Errorf("segment path cannot be empty")
+	}
+
 	file, err := os.Open(segmentPath)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to open segment file: %w", err)
@@ -47,6 +51,10 @@ func (sr *SegmentReader) ReadSegment(segmentPath string) (*Segment, []SegmentRea
 	header, err := sr.readHeader(reader)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to read segment header: %w", err)
+	}
+
+	if header == nil {
+		return nil, nil, fmt.Errorf("segment header is nil")
 	}
 
 	// Create segment object
@@ -73,7 +81,7 @@ func (sr *SegmentReader) ReadSegment(segmentPath string) (*Segment, []SegmentRea
 
 	// Extract series IDs from results
 	for _, result := range results {
-		if result.Error == nil {
+		if result.Error == nil && result.SeriesID != "" {
 			segment.SeriesIDs = append(segment.SeriesIDs, result.SeriesID)
 		}
 	}

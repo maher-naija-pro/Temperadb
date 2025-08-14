@@ -11,16 +11,22 @@ import (
 	"timeseriesdb/internal/storage"
 )
 
-
 // BenchmarkHTTPWriteSinglePoint benchmarks HTTP write endpoint with single point
 func BenchmarkHTTPWriteSinglePoint(b *testing.B) {
-	testFile := "benchmark_http_test.tsv"
-	defer os.Remove(testFile)
+	// Create temporary directory for test
+	tempDir, err := os.MkdirTemp("", "benchmark_http_test")
+	if err != nil {
+		b.Fatal(err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	testFile := tempDir + "/benchmark_http_test.tsv"
 
 	storageConfig := config.StorageConfig{
 		DataFile:    testFile,
+		DataDir:     tempDir,
 		MaxFileSize: 1073741824, // 1GB
-		BackupDir:   "backups",
+		BackupDir:   tempDir + "/backups",
 		Compression: false,
 	}
 	storageInstance := storage.NewStorage(storageConfig)
@@ -51,13 +57,20 @@ func BenchmarkHTTPWriteSinglePoint(b *testing.B) {
 
 // BenchmarkHTTPWriteMultiplePoints benchmarks HTTP write endpoint with multiple points
 func BenchmarkHTTPWriteMultiplePoints(b *testing.B) {
-	testFile := "benchmark_http_test.tsv"
-	defer os.Remove(testFile)
+	// Create temporary directory for test
+	tempDir, err := os.MkdirTemp("", "benchmark_http_test")
+	if err != nil {
+		b.Fatal(err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	testFile := tempDir + "/benchmark_http_test.tsv"
 
 	storageConfig := config.StorageConfig{
 		DataFile:    testFile,
+		DataDir:     tempDir,
 		MaxFileSize: 1073741824, // 1GB
-		BackupDir:   "backups",
+		BackupDir:   tempDir + "/backups",
 		Compression: false,
 	}
 	storageInstance := storage.NewStorage(storageConfig)
@@ -91,13 +104,20 @@ func BenchmarkHTTPWriteMultiplePoints(b *testing.B) {
 
 // BenchmarkHTTPWriteLargeDataset benchmarks HTTP write endpoint with large datasets
 func BenchmarkHTTPWriteLargeDataset(b *testing.B) {
-	testFile := "benchmark_http_test.tsv"
-	defer os.Remove(testFile)
+	// Create temporary directory for test
+	tempDir, err := os.MkdirTemp("", "benchmark_http_test")
+	if err != nil {
+		b.Fatal(err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	testFile := tempDir + "/benchmark_http_test.tsv"
 
 	storageConfig := config.StorageConfig{
 		DataFile:    testFile,
+		DataDir:     tempDir,
 		MaxFileSize: 1073741824, // 1GB
-		BackupDir:   "backups",
+		BackupDir:   tempDir + "/backups",
 		Compression: false,
 	}
 	storageInstance := storage.NewStorage(storageConfig)
@@ -124,13 +144,20 @@ func BenchmarkHTTPWriteLargeDataset(b *testing.B) {
 
 // BenchmarkEndToEndWrite benchmarks the complete workflow from parsing to storage
 func BenchmarkEndToEndWrite(b *testing.B) {
-	testFile := "benchmark_e2e_test.tsv"
-	defer os.Remove(testFile)
+	// Create temporary directory for test
+	tempDir, err := os.MkdirTemp("", "benchmark_e2e_test")
+	if err != nil {
+		b.Fatal(err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	testFile := tempDir + "/benchmark_e2e_test.tsv"
 
 	storageConfig := config.StorageConfig{
 		DataFile:    testFile,
+		DataDir:     tempDir,
 		MaxFileSize: 1073741824, // 1GB
-		BackupDir:   "backups",
+		BackupDir:   tempDir + "/backups",
 		Compression: false,
 	}
 	storageInstance := storage.NewStorage(storageConfig)

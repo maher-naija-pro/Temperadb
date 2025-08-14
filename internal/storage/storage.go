@@ -46,8 +46,9 @@ func NewStorage(cfg config.StorageConfig) *Storage {
 }
 
 // WritePoint writes a time-series point to the appropriate shard
-// Takes a Point struct and routes it to the correct storage shard
 func (s *Storage) WritePoint(p types.Point) error {
+	startTime := time.Now()
+
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
@@ -60,11 +61,23 @@ func (s *Storage) WritePoint(p types.Point) error {
 
 	shard, exists := s.shards[shardID]
 	if !exists {
-		// Create new shard if it doesn't exist
-		if err := s.createShard(shardID); err != nil {
-			return errors.WrapWithType(err, errors.ErrorTypeStorage, "failed to create shard")
+		// Need to upgrade to write lock to create shard
+		s.mu.RUnlock()
+		s.mu.Lock()
+
+		// Double-check that shard still doesn't exist after acquiring write lock
+		shard, exists = s.shards[shardID]
+		if !exists {
+			// Create new shard if it doesn't exist
+			if err := s.createShard(shardID); err != nil {
+				s.mu.Unlock()
+				return errors.WrapWithType(err, errors.ErrorTypeStorage, "failed to create shard")
+			}
+			shard = s.shards[shardID]
 		}
-		shard = s.shards[shardID]
+
+		s.mu.Unlock()
+		s.mu.RLock() // Re-acquire read lock for the rest of the function
 	}
 
 	// Convert types.Point to storage.DataPoint
@@ -99,13 +112,20 @@ func (s *Storage) WritePoint(p types.Point) error {
 	}
 
 	// Update metrics
-	s.metrics.RecordShardCount(len(s.shards))
+	if s.metrics != nil {
+		s.metrics.RecordShardCount(len(s.shards))
+		s.metrics.RecordStorageWriteOperation("storage", "write_point")
+		s.metrics.RecordDataPointsWritten("storage", len(dataPoints))
+		s.metrics.RecordStorageWriteLatency("storage", "write_point", time.Since(startTime))
+	}
 
 	return nil
 }
 
 // ReadPoints reads time-series points from the storage engine
 func (s *Storage) ReadPoints(measurement string, tags map[string]string, field string, start, end time.Time, limit int) ([]types.Point, error) {
+	startTime := time.Now()
+
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
@@ -147,6 +167,13 @@ func (s *Storage) ReadPoints(measurement string, tags map[string]string, field s
 		result = append(result, point)
 	}
 
+	// Update metrics
+	if s.metrics != nil {
+		s.metrics.RecordStorageReadOperation("storage", "read_points")
+		s.metrics.RecordDataPointsRead("storage", len(result))
+		s.metrics.RecordStorageReadLatency("storage", "read_points", time.Since(startTime))
+	}
+
 	return result, nil
 }
 
@@ -164,7 +191,7 @@ func (s *Storage) createShard(shardID string) error {
 		CompactionInterval:  30 * time.Second,
 	}
 
-	shard, err := NewShard(shardConfig)
+	shard, err := NewShard(shardConfig, s.metrics)
 	if err != nil {
 		return fmt.Errorf("failed to create shard %s: %w", shardID, err)
 	}
@@ -175,6 +202,12 @@ func (s *Storage) createShard(shardID string) error {
 	}
 
 	s.shards[shardID] = shard
+
+	// Update metrics
+	if s.metrics != nil {
+		s.metrics.RecordShardCount(len(s.shards))
+	}
+
 	logger.Infof("Created and opened shard: %s", shardID)
 
 	return nil

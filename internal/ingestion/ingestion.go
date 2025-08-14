@@ -67,6 +67,9 @@ func ParseLineProtocol(input string) ([]types.Point, error) {
 		}
 
 		// Parse timestamp
+		if len(parts[2]) != 19 {
+			return nil, errors.NewValidationError("invalid timestamp length, expected 19 digits for nanoseconds")
+		}
 		tsInt, err := strconv.ParseInt(parts[2], 10, 64)
 		if err != nil {
 			return nil, errors.WrapWithType(err, errors.ErrorTypeValidation, "invalid timestamp")

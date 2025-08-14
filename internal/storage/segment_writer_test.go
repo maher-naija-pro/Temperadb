@@ -6,7 +6,12 @@ import (
 	"path/filepath"
 	"testing"
 	"time"
+	"timeseriesdb/internal/logger"
 )
+
+func init() {
+	logger.Init()
+}
 
 func TestNewSegmentWriter(t *testing.T) {
 	t.Run("create new segment writer", func(t *testing.T) {
