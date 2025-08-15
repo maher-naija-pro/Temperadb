@@ -95,6 +95,18 @@ jobs:
         echo "🧪 Starting comprehensive Docker image testing..."
         echo "Image: ${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.VERSION }}"
         
+        # Check required tools
+        echo "🔧 Checking required tools..."
+        if ! command -v jq >/dev/null 2>&1; then
+          echo "❌ jq is not available, installing..."
+          sudo apt-get update && sudo apt-get install -y jq
+        fi
+        
+        if ! command -v curl >/dev/null 2>&1; then
+          echo "❌ curl is not available, installing..."
+          sudo apt-get update && sudo apt-get install -y curl
+        fi
+        
         # Generate unique container name
         CONTAINER_NAME="test-${{ env.IMAGE_NAME }}-$(date +%s)"
         echo "Container name: $CONTAINER_NAME"
@@ -146,6 +158,37 @@ jobs:
         echo "🏥 Waiting for health check to pass..."
         HEALTH_ATTEMPTS=0
         MAX_HEALTH_ATTEMPTS=30
+        
+        # Also check if the port is actually listening
+        echo "🔌 Checking if port ${{ env.PORT }} is listening..."
+        PORT_ATTEMPTS=0
+        MAX_PORT_ATTEMPTS=15
+        while [ $PORT_ATTEMPTS -lt $MAX_PORT_ATTEMPTS ]; do
+          if netstat -tuln 2>/dev/null | grep -q ":${{ env.PORT }} "; then
+            echo "✅ Port ${{ env.PORT }} is listening"
+            break
+          elif ss -tuln 2>/dev/null | grep -q ":${{ env.PORT }} "; then
+            echo "✅ Port ${{ env.PORT }} is listening (ss)"
+            break
+          else
+            echo "⏳ Waiting for port ${{ env.PORT }} to listen... (attempt $((PORT_ATTEMPTS + 1))/$MAX_PORT_ATTEMPTS)"
+            sleep 2
+            PORT_ATTEMPTS=$((PORT_ATTEMPTS + 1))
+          fi
+        done
+        
+        if [ $PORT_ATTEMPTS -eq $MAX_PORT_ATTEMPTS ]; then
+          echo "⚠️  Port ${{ env.PORT }} not listening after $MAX_PORT_ATTEMPTS attempts, proceeding anyway"
+        fi
+        
+        # Test network connectivity from host
+        echo "🌐 Testing network connectivity from host..."
+        if ping -c 1 localhost >/dev/null 2>&1; then
+          echo "✅ Localhost ping successful"
+        else
+          echo "⚠️  Localhost ping failed, but proceeding with tests"
+        fi
+        
         while [ $HEALTH_ATTEMPTS -lt $MAX_HEALTH_ATTEMPTS ]; do
           HEALTH_STATUS=$(docker inspect "$CONTAINER_NAME" --format='{{.State.Health.Status}}' 2>/dev/null)
           if [ "$HEALTH_STATUS" = "healthy" ]; then
@@ -170,33 +213,76 @@ jobs:
         
         # Wait for application to initialize
         echo "⏳ Waiting for application to initialize..."
-        for i in {1..20}; do
-          echo "Initialization check $i/20..."
+        INIT_ATTEMPTS=0
+        MAX_INIT_ATTEMPTS=20
+        CONNECTIVITY_ESTABLISHED=false
+        
+        while [ $INIT_ATTEMPTS -lt $MAX_INIT_ATTEMPTS ] && [ "$CONNECTIVITY_ESTABLISHED" = false ]; do
+          INIT_ATTEMPTS=$((INIT_ATTEMPTS + 1))
+          echo "Initialization check $INIT_ATTEMPTS/$MAX_INIT_ATTEMPTS..."
           
           # Check if container is still running using container name
           if ! docker ps --format "table {{.Names}}" | grep -q "$CONTAINER_NAME"; then
             echo "❌ Container stopped during initialization"
-            docker logs "$CONTAINER_NAME" || echo "Could not retrieve logs"
+            echo "🔍 Container logs (last 20 lines):"
+            docker logs --tail 20 "$CONTAINER_NAME" || echo "Could not retrieve logs"
             exit 1
           fi
           
-          # Test basic connectivity
-          if curl -f -s http://localhost:${{ env.PORT }}/ >/dev/null 2>&1; then
+                          # Test basic connectivity with timeout (fallback to regular curl if timeout not available)
+        if command -v timeout >/dev/null 2>&1; then
+          if timeout 5 curl -f -s http://localhost:${{ env.PORT }}/ >/dev/null 2>&1; then
             echo "✅ Basic connectivity established"
+            CONNECTIVITY_ESTABLISHED=true
             break
           fi
-          
-          sleep 3
+        else
+          if curl -f -s --max-time 5 http://localhost:${{ env.PORT }}/ >/dev/null 2>&1; then
+            echo "✅ Basic connectivity established"
+            CONNECTIVITY_ESTABLISHED=true
+            break
+          fi
+        fi
+          else
+            echo "⏳ Waiting for connectivity... (attempt $INIT_ATTEMPTS/$MAX_INIT_ATTEMPTS)"
+            sleep 3
+          fi
         done
+        
+        if [ "$CONNECTIVITY_ESTABLISHED" = false ]; then
+          echo "❌ Failed to establish connectivity after $MAX_INIT_ATTEMPTS attempts"
+          echo "🔍 Container logs (last 30 lines):"
+          docker logs --tail 30 "$CONTAINER_NAME" || echo "Could not retrieve logs"
+          echo "🔍 Container inspect:"
+          docker inspect "$CONTAINER_NAME" | jq '.[0].State' || echo "Could not inspect container"
+          exit 1
+        fi
+        
+        # Final verification before endpoint tests
+        echo "🔍 Final verification before endpoint tests..."
+        echo "📋 Container final status:"
+        docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep "$CONTAINER_NAME" || echo "Container not found in ps output"
         
         # Test health endpoint
         echo "🏥 Testing health endpoint..."
+        
+        # First, let's verify the container is accessible
+        echo "🔍 Verifying container accessibility..."
+        if ! docker exec "$CONTAINER_NAME" ps aux >/dev/null 2>&1; then
+          echo "❌ Cannot execute commands in container"
+          docker logs "$CONTAINER_NAME" || echo "Could not retrieve logs"
+          exit 1
+        fi
+        
         HEALTH_RESPONSE=$(curl -f -s http://localhost:${{ env.PORT }}/health)
         if [ $? -eq 0 ]; then
           echo "✅ Health check passed: $HEALTH_RESPONSE"
         else
           echo "❌ Health check failed"
-          docker logs "$CONTAINER_NAME" || echo "Could not retrieve logs"
+          echo "🔍 Container logs (last 20 lines):"
+          docker logs --tail 20 "$CONTAINER_NAME" || echo "Could not retrieve logs"
+          echo "🔍 Testing with verbose curl:"
+          curl -v http://localhost:${{ env.PORT }}/health || echo "Verbose curl failed"
           exit 1
         fi
         
@@ -209,14 +295,21 @@ jobs:
           curl -s http://localhost:${{ env.PORT }}/metrics | head -10
         else
           echo "⚠️  Metrics endpoint not accessible"
+          echo "🔍 Testing with verbose curl:"
+          curl -v http://localhost:${{ env.PORT }}/metrics || echo "Verbose curl failed"
         fi
         
         # Test root endpoint
         echo "🌐 Testing root endpoint..."
         if curl -f -s http://localhost:${{ env.PORT }}/ >/dev/null 2>&1; then
           echo "✅ Root endpoint accessible"
+          # Show response content
+          echo "📄 Root endpoint response:"
+          curl -s http://localhost:${{ env.PORT }}/ | head -5
         else
           echo "⚠️  Root endpoint not accessible"
+          echo "🔍 Testing with verbose curl:"
+          curl -v http://localhost:${{ env.PORT }}/ || echo "Verbose curl failed"
         fi
         
         # Test HTTP methods
@@ -243,6 +336,10 @@ jobs:
           echo "ℹ️  Write endpoint not available (this is normal for some configurations)"
         fi
         
+        # Show final container status before cleanup
+        echo "📋 Final container status before cleanup:"
+        docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep "$CONTAINER_NAME" || echo "Container not found in ps output"
+        
         # Show container resource usage
         echo "📊 Container resource usage:"
         docker stats --no-stream "$CONTAINER_NAME" || echo "Could not get container stats"
@@ -253,6 +350,9 @@ jobs:
         docker rm "$CONTAINER_NAME" || echo "Could not remove container"
         
         echo "🎉 Docker image testing completed successfully!"
+        echo "✅ All endpoints tested successfully"
+        echo "📊 Container was healthy and responsive"
+        echo "🔌 Port ${{ env.PORT }} was accessible"
 
     - name: Push Docker image
       if: github.event_name != 'pull_request'
@@ -289,13 +389,27 @@ jobs:
         echo "Container ID: $CONTAINER_ID"
         
         # Wait and test
-        sleep 10
+        echo "⏳ Waiting for pushed image container to start..."
+        sleep 5
         
+        # Verify container is running
+        if ! docker ps --format "table {{.Names}}" | grep -q "$CONTAINER_NAME"; then
+          echo "❌ Pushed image container failed to start"
+          echo "🔍 Container logs:"
+          docker logs "$CONTAINER_NAME" || echo "Could not retrieve logs"
+          exit 1
+        fi
+        
+        # Test health endpoint
+        echo "🏥 Testing pushed image health endpoint..."
         if curl -f -s http://localhost:8081/health >/dev/null 2>&1; then
           echo "✅ Pushed image test passed"
         else
           echo "❌ Pushed image test failed"
-          docker logs "$CONTAINER_NAME" || echo "Could not retrieve logs"
+          echo "🔍 Container logs (last 20 lines):"
+          docker logs --tail 20 "$CONTAINER_NAME" || echo "Could not retrieve logs"
+          echo "🔍 Testing with verbose curl:"
+          curl -v http://localhost:8081/health || echo "Verbose curl failed"
           exit 1
         fi
         

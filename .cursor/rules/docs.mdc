@@ -1,7 +1,4 @@
 ---
-description:
-globs:
-alwaysApply: false
+alwaysApply: true
 ---
-
 - keep all README under docs named with section name
