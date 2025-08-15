@@ -1,5 +1,12 @@
 ---
-description:
-globs:
-alwaysApply: false
+alwaysApply: true
+description: >
+  Enforce best practices for configuration management in the codebase.
+  - All configuration structs must be defined in the internal/config package.
+  - Default values must be sourced from internal/envvars/defaults.go.
+  - All configuration loading must use environment variables with sane defaults.
+  - Configuration must be validated on startup; fail fast on invalid config.
+  - No hardcoded config values outside internal/config and internal/envvars.
+  - Document all config options in docs/configuration.md.
+
 ---

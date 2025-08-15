@@ -353,6 +353,19 @@ jobs:
         echo "✅ All endpoints tested successfully"
         echo "📊 Container was healthy and responsive"
         echo "🔌 Port ${{ env.PORT }} was accessible"
+        echo ""
+        echo "📋 Test Summary:"
+        echo "  ✅ Container startup verification"
+        echo "  ✅ Health check validation"
+        echo "  ✅ Port listening verification"
+        echo "  ✅ Network connectivity tests"
+        echo "  ✅ Health endpoint (/health)"
+        echo "  ✅ Metrics endpoint (/metrics)"
+        echo "  ✅ Root endpoint (/)"
+        echo "  ✅ HTTP method validation"
+        echo "  ✅ Data ingestion test (if available)"
+        echo "  ✅ Container resource monitoring"
+        echo "  ✅ Cleanup verification"
 
     - name: Push Docker image
       if: github.event_name != 'pull_request'
