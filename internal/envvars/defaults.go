@@ -5,10 +5,11 @@ import "time"
 // Default values for environment variables
 var (
 	// Server Configuration Defaults
-	DefaultPort         = "8080"
-	DefaultReadTimeout  = 300 * time.Second
-	DefaultWriteTimeout = 300 * time.Second
-	DefaultIdleTimeout  = 220 * time.Second
+	DefaultPort            = "8080"
+	DefaultReadTimeout     = 30 * time.Second
+	DefaultWriteTimeout    = 30 * time.Second
+	DefaultIdleTimeout     = 120 * time.Second
+	DefaultShutdownTimeout = 30 * time.Second
 
 	// Storage Configuration Defaults
 	DefaultDataFile    = "/tmp/data.tsv"

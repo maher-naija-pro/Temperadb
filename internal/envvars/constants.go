@@ -3,10 +3,11 @@ package envvars
 // Environment variable keys for server configuration
 const (
 	// Server Configuration
-	Port         = "PORT"
-	ReadTimeout  = "READ_TIMEOUT"
-	WriteTimeout = "WRITE_TIMEOUT"
-	IdleTimeout  = "IDLE_TIMEOUT"
+	Port            = "PORT"
+	ReadTimeout     = "READ_TIMEOUT"
+	WriteTimeout    = "WRITE_TIMEOUT"
+	IdleTimeout     = "IDLE_TIMEOUT"
+	ShutdownTimeout = "SHUTDOWN_TIMEOUT"
 )
 
 // Environment variable keys for storage configuration

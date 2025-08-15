@@ -19,10 +19,11 @@ func main() {
 	// Create test configuration
 	cfg := &config.Config{
 		Server: config.ServerConfig{
-			Port:         "8080",
-			ReadTimeout:  5 * time.Second,
-			WriteTimeout: 5 * time.Second,
-			IdleTimeout:  10 * time.Second,
+			Port:            "8080",
+			ReadTimeout:     5 * time.Second,
+			WriteTimeout:    5 * time.Second,
+			IdleTimeout:     10 * time.Second,
+			ShutdownTimeout: 10 * time.Second,
 		},
 		Logging: config.LoggingConfig{
 			Level: "info",
@@ -87,7 +88,7 @@ func main() {
 
 	// Graceful shutdown with timeout
 	fmt.Println("5. Performing graceful shutdown...")
-	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), cfg.Server.ShutdownTimeout)
 	defer shutdownCancel()
 
 	shutdownStart := time.Now()
