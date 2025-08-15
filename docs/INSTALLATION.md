@@ -100,6 +100,7 @@ WRITE_TIMEOUT=30s
 | `MAX_CONNECTIONS` | `1000` | Maximum concurrent connections |
 | `READ_TIMEOUT` | `30s` | HTTP read timeout |
 | `WRITE_TIMEOUT` | `30s` | HTTP write timeout |
+| `SHUTDOWN_TIMEOUT` | `30s` | Application shutdown timeout |
 
 ### Configuration File
 
@@ -112,6 +113,7 @@ server:
   host: "0.0.0.0"
   read_timeout: "30s"
   write_timeout: "30s"
+  shutdown_timeout: "30s"
   max_connections: 1000
 
 storage:

@@ -1,0 +1,25 @@
+---
+description: |
+  Logging Standards for TimeSeriesDB
+
+  - All logging must use the internal/logger package to ensure consistency and central control.
+  - Log level, format, and output must be configurable via internal/config, with defaults from internal/envvars, to support flexible deployments and environments.
+  - Supported log levels: debug, info, warn, error, fatal, to allow appropriate granularity and filtering.
+  - Log format must support both "text" and "json" outputs for compatibility with different log aggregation systems.
+  - All log messages must be structured and include relevant context (e.g., request ID, user, operation) to aid in debugging and traceability.
+  - Never log sensitive information (e.g., passwords, secrets, tokens) to protect user privacy and security.
+  - Logger must be initialized before any other package logs to avoid missing or misrouted logs.
+  - Fatal errors must use logger.Fatalf and terminate the process to ensure critical failures are visible and handled.
+  - All errors should be logged with sufficient detail for debugging, including stack traces where appropriate.
+  - Log rotation and retention must be configurable to prevent disk exhaustion and comply with operational requirements.
+  - All logging configuration options must be documented in docs/configuration.md for discoverability and maintainability.
+
+globs:
+  - internal/logger/**
+  - internal/config/**
+  - internal/envvars/**
+  - main.go
+  - docs/configuration.md
+
+alwaysApply: true
+---

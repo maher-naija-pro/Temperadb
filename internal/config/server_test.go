@@ -8,6 +8,16 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestNewServerConfig(t *testing.T) {
+	cfg := NewServerConfig()
+
+	assert.Equal(t, "8080", cfg.Port)
+	assert.Equal(t, 30*time.Second, cfg.ReadTimeout)
+	assert.Equal(t, 30*time.Second, cfg.WriteTimeout)
+	assert.Equal(t, 120*time.Second, cfg.IdleTimeout)
+	assert.Equal(t, 30*time.Second, cfg.ShutdownTimeout)
+}
+
 func TestServerConfig(t *testing.T) {
 	t.Run("NewServerConfig with defaults", func(t *testing.T) {
 		cfg := NewServerConfig()

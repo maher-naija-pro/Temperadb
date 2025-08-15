@@ -7,7 +7,6 @@ import (
 	"os/signal"
 	"runtime"
 	"syscall"
-	"time"
 	"timeseriesdb/internal/config"
 	"timeseriesdb/internal/errors"
 	"timeseriesdb/internal/logger"
@@ -80,7 +79,7 @@ func main() {
 	}
 
 	// Graceful shutdown with timeout
-	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 30*time.Second)
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), cfg.Server.ShutdownTimeout)
 	defer shutdownCancel()
 
 	if err := srv.Shutdown(shutdownCtx); err != nil {

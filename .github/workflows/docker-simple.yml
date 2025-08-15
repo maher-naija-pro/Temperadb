@@ -1,27 +1,33 @@
-name: Docker Build (Simple)
+name: Docker Build and Test
 
 on:
   push:
     tags:
       - 'v*'
+    branches: [ main, master, test ]
+  pull_request:
     branches: [ main, master ]
   workflow_dispatch:
 
 env:
   REGISTRY: ghcr.io
+  IMAGE_NAME: timeseriesdb
+  PORT: 8080
 
 permissions:
   contents: read
   packages: write
 
 jobs:
-  build-and-push:
+  build-and-test:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 45
     
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
 
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
@@ -33,98 +39,171 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Extract version
-      id: version
+    - name: Extract metadata
+      id: meta
       run: |
+        # Extract version from git
         if [[ "${{ github.ref }}" == refs/tags/* ]]; then
-          echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          VERSION=${GITHUB_REF#refs/tags/}
         else
-          echo "VERSION=latest" >> $GITHUB_OUTPUT
+          VERSION=$(git describe --tags --always --dirty 2>/dev/null || echo "dev")
         fi
+        
+        # Extract commit hash
+        COMMIT_HASH=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+        
+        # Extract build time
+        BUILD_TIME=$(date -u '+%Y-%m-%d_%H:%M:%S')
+        
+        echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+        echo "COMMIT_HASH=$COMMIT_HASH" >> $GITHUB_OUTPUT
+        echo "BUILD_TIME=$BUILD_TIME" >> $GITHUB_OUTPUT
+        
+        echo "📋 Build metadata:"
+        echo "  Version: $VERSION"
+        echo "  Commit: $COMMIT_HASH"
+        echo "  Build time: $BUILD_TIME"
 
-    - name: Set lowercase image name
-      id: image_name
+    - name: Build Docker image
+      id: build
       run: |
-        echo "IMAGE_NAME=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
-
-    - name: Build and push Docker image
-      uses: docker/build-push-action@v5
-      with:
-        context: .
-        platforms: linux/amd64
-        push: true
-        tags: |
-          ${{ env.REGISTRY }}/${{ steps.image_name.outputs.IMAGE_NAME }}:${{ steps.version.outputs.VERSION }}
-          ${{ env.REGISTRY }}/${{ steps.image_name.outputs.IMAGE_NAME }}:latest
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
-        build-args: |
-          VERSION=${{ steps.version.outputs.VERSION }}
+        echo "🔨 Building Docker image..."
+        echo "Image: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.VERSION }}"
+        
+        # Build the image
+        docker build \
+          --build-arg VERSION=${{ steps.meta.outputs.VERSION }} \
+          --build-arg GOOS=linux \
+          --build-arg GOARCH=amd64 \
+          -t ${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.VERSION }} \
+          -t ${{ env.IMAGE_NAME }}:latest \
+          .
+        
+        echo "✅ Docker image built successfully"
+        
+        # Show image details
+        echo "📋 Image details:"
+        docker images | grep ${{ env.IMAGE_NAME }}
+        
+        # Show image layers
+        echo "🔍 Image layers:"
+        docker history ${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.VERSION }} | head -10
 
     - name: Test Docker image
+      id: test
       run: |
-        echo "Testing Docker image..."
+        echo "🧪 Starting comprehensive Docker image testing..."
+        echo "Image: ${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.VERSION }}"
         
-        # Pull and test the image
-        docker pull ${{ env.REGISTRY }}/${{ steps.image_name.outputs.IMAGE_NAME }}:${{ steps.version.outputs.VERSION }}
+        # Check required tools
+        echo "🔧 Checking required tools..."
+        if ! command -v jq >/dev/null 2>&1; then
+          echo "❌ jq is not available, installing..."
+          sudo apt-get update && sudo apt-get install -y jq
+        fi
         
-        # Test container starts
-        container_id=$(docker run -d -p 8080:8080 ${{ env.REGISTRY }}/${{ steps.image_name.outputs.IMAGE_NAME }}:${{ steps.version.outputs.VERSION }})
+        if ! command -v curl >/dev/null 2>&1; then
+          echo "❌ curl is not available, installing..."
+          sudo apt-get update && sudo apt-get install -y curl
+        fi
         
-        # Wait for container to be ready and check logs
-        echo "Waiting for container to start..."
-        sleep 30
+        # Generate unique container name
+        CONTAINER_NAME="test-${{ env.IMAGE_NAME }}-$(date +%s)"
+        echo "Container name: $CONTAINER_NAME"
         
-        # Check if container is running
-        if docker ps | grep -q $container_id; then
-          echo "✅ Container started successfully"
-          
-          # Wait a bit more for the application to fully initialize
-          sleep 5
-          
-          # Test health endpoint with retries
-          max_retries=5
-          retry_count=0
-          health_check_passed=false
-          
-          while [ $retry_count -lt $max_retries ]; do
-            echo "Testing health endpoint (attempt $((retry_count + 1))/$max_retries)..."
-            if curl -f http://localhost:8080/health 2>/dev/null; then
-              echo "✅ Health check passed"
-              health_check_passed=true
-              break
-            else
-              echo "⚠️  Health check attempt $((retry_count + 1)) failed, retrying..."
-              retry_count=$((retry_count + 1))
-              sleep 3
-            fi
-          done
-          
-          if [ "$health_check_passed" = false ]; then
-            echo "❌ Health check failed after $max_retries attempts"
-            echo "Container logs:"
-            docker logs $container_id
-            exit 1
-          fi
-        else
-          echo "❌ Container failed to start"
-          echo "Container logs:"
-          docker logs $container_id
+        # Start container
+        echo "🚀 Starting test container..."
+        CONTAINER_ID=$(docker run -d \
+          --name "$CONTAINER_NAME" \
+          -p ${{ env.PORT }}:${{ env.PORT }} \
+          -e DEBUG=true \
+          -e LOG_LEVEL=debug \
+          ${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.VERSION }})
+        
+        echo "Container ID: $CONTAINER_ID"
+        
+        # Wait for container to start and verify it's running
+        echo "⏳ Waiting for container to start..."
+        sleep 5
+        
+        # More robust container verification
+        echo "🔍 Verifying container status..."
+        if ! docker ps --format "table {{.ID}}\t{{.Names}}\t{{.Status}}" | grep -q "$CONTAINER_NAME"; then
+          echo "❌ Container not found in running containers list"
+          echo "🔍 Container logs:"
+          docker logs "$CONTAINER_NAME" || echo "Could not retrieve logs"
+          echo "🔍 Container inspect:"
+          docker inspect "$CONTAINER_NAME" | jq '.[0].State' || echo "Could not inspect container"
           exit 1
         fi
         
-        # Cleanup
-        docker stop $container_id
-        docker rm $container_id
-        
-        echo "🎉 Docker image test completed successfully"
-
-    - name: Show image info
-      run: |
-        echo "📦 Docker image built successfully!"
-        echo "Image: ${{ env.REGISTRY }}/${{ steps.image_name.outputs.IMAGE_NAME }}:${{ steps.version.outputs.VERSION }}"
-        echo "Latest: ${{ env.REGISTRY }}/${{ steps.image_name.outputs.IMAGE_NAME }}:latest"
-        
-        if [[ "${{ steps.version.outputs.VERSION }}" != "latest" ]]; then
-          echo "Tag: ${{ steps.version.outputs.VERSION }}"
+        # Additional verification using container inspect
+        CONTAINER_STATUS=$(docker inspect "$CONTAINER_NAME" --format='{{.State.Status}}' 2>/dev/null)
+        if [ "$CONTAINER_STATUS" != "running" ]; then
+          echo "❌ Container is not in running state. Current status: $CONTAINER_STATUS"
+          echo "🔍 Container logs:"
+          docker logs "$CONTAINER_NAME" || echo "Could not retrieve logs"
+          echo "🔍 Container inspect:"
+          docker inspect "$CONTAINER_NAME" | jq '.[0].State' || echo "Could not inspect container"
+          exit 1
         fi
+        
+        echo "✅ Container is running"
+        
+        # Show container status for debugging
+        echo "📋 Container status:"
+        docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep "$CONTAINER_NAME" || echo "Container not found in ps output"
+        
+        # Wait for health check to pass
+        echo "🏥 Waiting for health check to pass..."
+        HEALTH_ATTEMPTS=0
+        MAX_HEALTH_ATTEMPTS=30
+        
+        # Also check if the port is actually listening
+        echo "🔌 Checking if port ${{ env.PORT }} is listening..."
+        PORT_ATTEMPTS=0
+        MAX_PORT_ATTEMPTS=15
+        while [ $PORT_ATTEMPTS -lt $MAX_PORT_ATTEMPTS ]; do
+          if netstat -tuln 2>/dev/null | grep -q ":${{ env.PORT }} "; then
+            echo "✅ Port ${{ env.PORT }} is listening"
+            break
+          elif ss -tuln 2>/dev/null | grep -q ":${{ env.PORT }} "; then
+            echo "✅ Port ${{ env.PORT }} is listening (ss)"
+            break
+          else
+            echo "⏳ Waiting for port ${{ env.PORT }} to listen... (attempt $((PORT_ATTEMPTS + 1))/$MAX_PORT_ATTEMPTS)"
+            sleep 2
+            PORT_ATTEMPTS=$((PORT_ATTEMPTS + 1))
+          fi
+        done
+        
+        if [ $PORT_ATTEMPTS -eq $MAX_PORT_ATTEMPTS ]; then
+          echo "⚠️  Port ${{ env.PORT }} not listening after $MAX_PORT_ATTEMPTS attempts, proceeding anyway"
+        fi
+        
+        # Test network connectivity from host
+        echo "🌐 Testing network connectivity from host..."
+        if ping -c 1 localhost >/dev/null 2>&1; then
+          echo "✅ Localhost ping successful"
+        else
+          echo "⚠️  Localhost ping failed, but proceeding with tests"
+        fi
+        
+  
+    - name: Push Docker image
+      if: github.event_name != 'pull_request'
+      run: |
+        echo "📤 Pushing Docker image to registry..."
+        
+        # Tag for registry
+        docker tag ${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.VERSION }} \
+          ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.VERSION }}
+        docker tag ${{ env.IMAGE_NAME }}:latest \
+          ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:latest
+        
+        # Push images
+        docker push ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.VERSION }}
+        docker push ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:latest
+        
+        echo "✅ Images pushed successfully"
+

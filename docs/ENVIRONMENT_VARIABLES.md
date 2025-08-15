@@ -51,6 +51,7 @@ envvars.Port         // "PORT"
 envvars.ReadTimeout  // "READ_TIMEOUT"
 envvars.WriteTimeout // "WRITE_TIMEOUT"
 envvars.IdleTimeout  // "IDLE_TIMEOUT"
+envvars.ShutdownTimeout // "SHUTDOWN_TIMEOUT"
 
 // Storage Configuration
 envvars.DataFile     // "DATA_FILE"
@@ -83,6 +84,7 @@ envvars.DefaultPort         // "8080"
 envvars.DefaultReadTimeout  // 30 * time.Second
 envvars.DefaultWriteTimeout // 30 * time.Second
 envvars.DefaultIdleTimeout  // 120 * time.Second
+envvars.DefaultShutdownTimeout // 30 * time.Second
 
 // Storage Defaults
 envvars.DefaultDataFile    // "data.tsv"
