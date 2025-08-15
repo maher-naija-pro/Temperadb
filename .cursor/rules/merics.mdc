@@ -1,0 +1,23 @@
+---
+description: |
+  Metrics Standards for TimeSeriesDB
+
+  - All application metrics must be defined and registered in the internal/metrics package.
+  - Use Prometheus-compatible metrics (counters, gauges, histograms, summaries) for observability and integration with monitoring systems.
+  - Metric names must be clear, consistent, and follow Prometheus naming conventions (e.g., snake_case, units as suffixes).
+  - All metrics must include appropriate labels for cardinality control and meaningful aggregation (e.g., endpoint, status, operation).
+  - No sensitive or user-identifiable information may be included in metric labels or values.
+  - Metrics must be exposed via the /metrics HTTP endpoint in Prometheus exposition format.
+  - All metrics must be documented in docs/metrics.md, including name, type, labels, and description.
+  - Instrumentation must not introduce significant performance overhead or block critical paths.
+  - All new features must include relevant metrics for usage, performance, and error tracking.
+  - Metrics collection and export must be configurable via internal/config, with sane defaults and the ability to disable metrics if required.
+  - All metric registration and updates must be covered by unit tests to ensure correctness and prevent regressions.
+
+globs:
+  - internal/metrics/**
+  - cmd/**
+  - main.go
+  - docs/metrics.md
+alwaysApply: true
+---

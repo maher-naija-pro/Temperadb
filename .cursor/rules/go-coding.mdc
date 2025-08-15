@@ -1,3 +1,20 @@
 ---
 alwaysApply: true
+description: |
+  Go Coding Standards for TimeSeriesDB
+
+  - All code must be formatted with `gofmt` and pass `go vet`.
+  - Use idiomatic Go naming conventions (e.g., CamelCase for types, MixedCaps for exported names).
+  - Avoid global variables except for constants and configuration defaults.
+  - All exported functions, types, and packages must have clear, concise GoDoc comments.
+  - Error handling must be explicit; never ignore errors.
+  - Use context.Context for cancellation and timeouts in long-running or blocking operations.
+  - Prefer composition over inheritance; use interfaces for abstractions.
+  - All configuration values must be loaded via the internal/config package and use defaults from internal/envvars.
+  - No hardcoded configuration or magic numbers; use named constants.
+  - All public APIs must validate input and return informative errors.
+  - Write unit tests for all packages; aim for high test coverage.
+  - Use channels and goroutines carefully; avoid leaks and race conditions.
+  - Follow the repository's architecture and layering guidelines (see tsdb-architecture rule).
+  - Document all exported symbols and keep documentation up to date.
 ---

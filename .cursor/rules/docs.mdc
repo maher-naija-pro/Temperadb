@@ -1,4 +1,17 @@
 ---
 alwaysApply: true
----
-- keep all README under docs named with section name
+description: >
+  Documentation rules for the repository:
+  - All documentation must be placed under the `docs/` directory.
+  - Each major section or feature must have its own README file under `docs/`, named after the section (e.g., `docs/configuration.md`, `docs/architecture.md`).
+  - The main project README should only provide a high-level overview and link to detailed docs in `docs/`.
+  - Keep documentation up to date with code changes.
+
+  - All configuration options must be documented in `docs/configuration.md`.
+  - Use clear, concise language and consistent formatting in all documentation.
+
+globs:
+  - docs/**
+  - README.md
+
+  ---
