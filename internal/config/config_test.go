@@ -21,9 +21,9 @@ func TestConfigLoad(t *testing.T) {
 		assert.Equal(t, 120*time.Second, cfg.Server.IdleTimeout)
 
 		// Check storage defaults
-		assert.Equal(t, "/tmp/data.tsv", cfg.Storage.DataFile)
+		assert.Equal(t, "./data/data.tsv", cfg.Storage.DataFile)
 		assert.Equal(t, int64(1073741824), cfg.Storage.MaxFileSize)
-		assert.Equal(t, "/tmp/backups", cfg.Storage.BackupDir)
+		assert.Equal(t, "./data/backups", cfg.Storage.BackupDir)
 		assert.False(t, cfg.Storage.Compression)
 
 		// Check logging defaults

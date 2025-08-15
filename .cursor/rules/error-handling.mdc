@@ -1,5 +1,18 @@
+---
+alwaysApply: true
+description: |
+  Error Handling Standards for TimeSeriesDB
 
-description:
-globs:
-alwaysApply: false
+  - All errors must be checked and handled explicitly; never ignore returned errors.
+  - Use Go's idiomatic error handling: return errors as the last return value.
+  - Wrap errors with context using fmt.Errorf or errors.Join where appropriate.
+  - For exported APIs, return informative, user-friendly error messages.
+  - Do not panic except in truly unrecoverable situations (e.g., programmer errors).
+  - Use custom error types for domain-specific errors when needed.
+  - Log errors at the appropriate level using the internal logger package.
+  - Propagate errors up the call stack; do not swallow errors unless there is a clear, documented reason.
+  - For configuration and startup, fail fast and return errors to the caller.
+  - In goroutines, communicate errors via channels or context cancellation.
+  - All error messages must be clear, concise, and actionable.
+  - Unit tests must cover error cases and ensure correct error propagation.
 ---

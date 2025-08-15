@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 	"time"
+
 	"timeseriesdb/internal/logger"
 )
 
@@ -175,7 +176,7 @@ func TestAddSegment(t *testing.T) {
 		// Create segments of different sizes
 		smallSegment := &Segment{
 			ID:        1,
-			Path:      "/tmp/small.seg",
+			Path:      testPath("small.seg"),
 			Size:      512, // Fits in level 0
 			MinTime:   time.Now(),
 			MaxTime:   time.Now().Add(time.Hour),
@@ -185,7 +186,7 @@ func TestAddSegment(t *testing.T) {
 
 		mediumSegment := &Segment{
 			ID:        2,
-			Path:      "/tmp/medium.seg",
+			Path:      testPath("medium.seg"),
 			Size:      2048, // Fits in level 1
 			MinTime:   time.Now(),
 			MaxTime:   time.Now().Add(time.Hour),
@@ -195,7 +196,7 @@ func TestAddSegment(t *testing.T) {
 
 		largeSegment := &Segment{
 			ID:        3,
-			Path:      "/tmp/large.seg",
+			Path:      testPath("large.seg"),
 			Size:      4096, // Fits in level 2
 			MinTime:   time.Now(),
 			MaxTime:   time.Now().Add(time.Hour),
@@ -263,7 +264,7 @@ func TestAddSegment(t *testing.T) {
 		for i := 0; i < 3; i++ {
 			segment := &Segment{
 				ID:        uint64(i + 1),
-				Path:      fmt.Sprintf("/tmp/segment_%d.seg", i),
+				Path:      fmt.Sprintf("./testdata/segment_%d.seg", i),
 				Size:      512,
 				MinTime:   time.Now(),
 				MaxTime:   time.Now().Add(time.Hour),
@@ -318,7 +319,7 @@ func TestFindLevelForSegment(t *testing.T) {
 		for _, tc := range testCases {
 			segment := &Segment{
 				ID:        1,
-				Path:      "/tmp/test.seg",
+				Path:      "./testdata/test.seg",
 				Size:      tc.size,
 				MinTime:   time.Now(),
 				MaxTime:   time.Now().Add(time.Hour),
@@ -360,7 +361,7 @@ func TestShouldCompactLevel(t *testing.T) {
 		for i := 0; i < 4; i++ {
 			segment := &Segment{
 				ID:        uint64(i + 1),
-				Path:      fmt.Sprintf("/tmp/segment_%d.seg", i),
+				Path:      fmt.Sprintf("./testdata/segment_%d.seg", i),
 				Size:      512,
 				MinTime:   time.Now(),
 				MaxTime:   time.Now().Add(time.Hour),
@@ -404,7 +405,7 @@ func TestGetLevelStats(t *testing.T) {
 		for i := 0; i < 3; i++ {
 			segment := &Segment{
 				ID:        uint64(i + 1),
-				Path:      fmt.Sprintf("/tmp/segment_%d.seg", i),
+				Path:      fmt.Sprintf("./testdata/segment_%d.seg", i),
 				Size:      512,
 				MinTime:   time.Now(),
 				MaxTime:   time.Now().Add(time.Hour),
@@ -474,7 +475,7 @@ func TestForceCompaction(t *testing.T) {
 		for i := 0; i < 3; i++ {
 			segment := &Segment{
 				ID:        uint64(i + 1),
-				Path:      fmt.Sprintf("/tmp/segment_%d.seg", i),
+				Path:      fmt.Sprintf("./testdata/segment_%d.seg", i),
 				Size:      512,
 				MinTime:   time.Now(),
 				MaxTime:   time.Now().Add(time.Hour),

@@ -4,6 +4,8 @@ import (
 	"strconv"
 	"time"
 
+	"timeseriesdb/internal/envvars"
+
 	"github.com/joho/godotenv"
 )
 
@@ -24,10 +26,12 @@ type DatabaseConfig struct {
 
 // NewDatabaseConfig creates a new DatabaseConfig with default values
 func NewDatabaseConfig() DatabaseConfig {
+	parser := envvars.NewParser()
+
 	return DatabaseConfig{
-		MaxConnections: 100,
-		ConnectionTTL:  5 * time.Minute,
-		QueryTimeout:   30 * time.Second,
+		MaxConnections: parser.Int(envvars.MaxConnections, envvars.DefaultMaxConnections),
+		ConnectionTTL:  parser.Duration(envvars.ConnectionTTL, envvars.DefaultConnectionTTL),
+		QueryTimeout:   parser.Duration(envvars.QueryTimeout, envvars.DefaultQueryTimeout),
 	}
 }
 

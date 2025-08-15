@@ -11,6 +11,8 @@ import (
 	"timeseriesdb/test/helpers"
 )
 
+const testPort = "8080"
+
 func TestNewServer(t *testing.T) {
 	defer metrics.Reset()
 
@@ -56,8 +58,8 @@ func TestNewServer(t *testing.T) {
 	}
 
 	// Verify HTTP server configuration
-	if server.httpServer.Addr != ":8080" {
-		t.Errorf("Expected server address ':8080', got '%s'", server.httpServer.Addr)
+	if server.httpServer.Addr != ":"+testPort {
+		t.Errorf("Expected server address ':%s', got '%s'", testPort, server.httpServer.Addr)
 	}
 
 	if server.httpServer.ReadTimeout != 30*time.Second {
