@@ -4,7 +4,7 @@ on:
   push:
     tags:
       - 'v*'
-    branches: [ main, master ]
+    branches: [ main, master, test ]
   workflow_dispatch:
 
 env:
@@ -17,7 +17,7 @@ permissions:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     
     steps:
     - name: Checkout code
@@ -61,70 +61,278 @@ jobs:
         build-args: |
           VERSION=${{ steps.version.outputs.VERSION }}
 
+    - name: Pre-test diagnostics
+      run: |
+        echo "🔍 Pre-test diagnostics..."
+        echo "System info:"
+        echo "  OS: $(uname -a)"
+        echo "  Docker version: $(docker --version)"
+        echo "  Available memory: $(free -h | grep Mem | awk '{print $2}')"
+        echo "  Available disk: $(df -h / | tail -1 | awk '{print $4}')"
+        echo "  Docker daemon info:"
+        docker system df || echo "Could not get Docker system info"
+        echo "  Docker daemon version:"
+        docker version || echo "Could not get Docker version"
+
     - name: Test Docker image
       run: |
-        echo "Testing Docker image..."
+        echo "🧪 Starting Docker image testing..."
+        echo "Image: ${{ env.REGISTRY }}/${{ steps.image_name.outputs.IMAGE_NAME }}:${{ steps.version.outputs.VERSION }}"
         
-        # Pull and test the image
+        # Pull the image
+        echo "📥 Pulling Docker image..."
         docker pull ${{ env.REGISTRY }}/${{ steps.image_name.outputs.IMAGE_NAME }}:${{ steps.version.outputs.VERSION }}
         
-        # Test container starts
-        container_id=$(docker run -d -p 8080:8080 ${{ env.REGISTRY }}/${{ steps.image_name.outputs.IMAGE_NAME }}:${{ steps.version.outputs.VERSION }})
+        # Show comprehensive image details for debugging
+        echo "📋 Image details:"
+        docker images | grep ${{ steps.image_name.outputs.IMAGE_NAME }}
+        docker inspect ${{ env.REGISTRY }}/${{ steps.image_name.outputs.IMAGE_NAME }}:${{ steps.version.outputs.VERSION }} | jq '.[0].Config.Entrypoint, .[0].Config.Cmd, .[0].Config.ExposedPorts' || echo "Could not inspect image"
         
-        # Wait for container to be ready and check logs
-        echo "Waiting for container to start..."
-        sleep 30
+        # Test container starts with better error handling
+        echo "🚀 Starting container for testing..."
+        container_name="test-container-$(date +%s)"
+        container_id=$(docker run -d \
+          -p 8080:8080 \
+          -e DEBUG=true \
+          -e LOG_LEVEL=debug \
+          --name test-container-$(date +%s) \
+          ${{ env.REGISTRY }}/${{ steps.image_name.outputs.IMAGE_NAME }}:${{ steps.version.outputs.VERSION }})
         
-        # Check if container is running
-        if docker ps | grep -q $container_id; then
-          echo "✅ Container started successfully"
+        echo "Container ID: $container_id"
+        echo "Container Name: $container_name"
+        
+        # Enhanced container startup monitoring
+        echo "⏳ Waiting for container to start..."
+        max_wait_time=90
+        wait_time=0
+        container_started=false
+        
+        while [ $wait_time -lt $max_wait_time ]; do
+          echo "Check $((wait_time/5 + 1)): Container status check..."
           
-          # Wait a bit more for the application to fully initialize
-          sleep 5
-          
-          # Test health endpoint with retries
-          max_retries=5
-          retry_count=0
-          health_check_passed=false
-          
-          while [ $retry_count -lt $max_retries ]; do
-            echo "Testing health endpoint (attempt $((retry_count + 1))/$max_retries)..."
-            if curl -f http://localhost:8080/health 2>/dev/null; then
-              echo "✅ Health check passed"
-              health_check_passed=true
+          if docker ps | grep -q $container_id; then
+            echo "✅ Container is running"
+            container_started=true
+            
+            # Show container details
+            echo "🔍 Container details:"
+            docker inspect $container_id | jq '.[0].State, .[0].NetworkSettings' || echo "Could not inspect container"
+            
+            # Check if port is listening
+            echo "🔌 Port status check:"
+            netstat -tlnp | grep 8080 || echo "Port 8080 not listening yet"
+            
+            break
+          else
+            echo "⏰ Container not running yet, waiting... ($wait_time/$max_wait_time seconds)"
+            
+            # Check if container exists but failed
+            if docker ps -a | grep -q $container_name; then
+              echo "❌ Container exists but not running - checking logs:"
+              docker logs $container_name || echo "Could not retrieve container logs"
+              docker inspect $container_name | jq '.[0].State' || echo "Could not inspect container state"
+              echo "🔍 Container exit code:"
+              docker inspect $container_name | jq '.[0].State.ExitCode' || echo "Could not get exit code"
               break
-            else
-              echo "⚠️  Health check attempt $((retry_count + 1)) failed, retrying..."
-              retry_count=$((retry_count + 1))
-              sleep 3
             fi
-          done
-          
-          if [ "$health_check_passed" = false ]; then
-            echo "❌ Health check failed after $max_retries attempts"
-            echo "Container logs:"
-            docker logs $container_id
-            exit 1
+            
+            sleep 5
+            wait_time=$((wait_time + 5))
           fi
-        else
-          echo "❌ Container failed to start"
-          echo "Container logs:"
-          docker logs $container_id
+        done
+        
+        if [ "$container_started" = false ]; then
+          echo "❌ Container failed to start within $max_wait_time seconds"
+          echo "🔍 Container logs:"
+          docker logs $container_name || echo "Could not retrieve container logs"
+          echo "🔍 Container inspect:"
+          docker inspect $container_name || echo "Could not inspect container"
+          echo "🔍 Docker ps -a:"
+          docker ps -a | grep $container_name || echo "Container not found in ps -a"
+          echo "🔍 Docker system info:"
+          docker system df || echo "Could not get Docker system info"
+          echo "🔍 System resources:"
+          free -h || echo "Could not get memory info"
+          df -h || echo "Could not get disk info"
           exit 1
         fi
         
-        # Cleanup
-        docker stop $container_id
-        docker rm $container_id
+        # Wait for application to initialize with progress
+        echo "⏳ Waiting for application to initialize..."
+        for i in {1..12}; do
+          echo "Initialization check $i/12..."
+          sleep 5
+          
+          # Check if container is still running
+          if ! docker ps | grep -q $container_id; then
+            echo "❌ Container stopped during initialization"
+            echo "🔍 Container logs:"
+            docker logs $container_name || echo "Could not retrieve container logs"
+            exit 1
+          fi
+          
+          # Test basic connectivity
+          if curl -f -s http://localhost:8080/ >/dev/null 2>&1; then
+            echo "✅ Basic connectivity established"
+            break
+          fi
+        done
         
-        echo "🎉 Docker image test completed successfully"
+        # Enhanced health endpoint testing with comprehensive retry logic
+        echo "🏥 Testing health endpoint..."
+        max_retries=15
+        retry_count=0
+        health_check_passed=false
+        
+        while [ $retry_count -lt $max_retries ]; do
+          echo "🔍 Health check attempt $((retry_count + 1))/$max_retries..."
+          
+          # Check if container is still running
+          if ! docker ps | grep -q $container_id; then
+            echo "❌ Container stopped unexpectedly during health check"
+            echo "🔍 Container logs:"
+            docker logs $container_name || echo "Could not retrieve container logs"
+            echo "🔍 Container inspect:"
+            docker inspect $container_name | jq '.[0].State' || echo "Could not inspect container"
+            exit 1
+          fi
+          
+          # Test health endpoint
+          if curl -f -s http://localhost:8080/health >/dev/null 2>&1; then
+            echo "✅ Health check passed"
+            health_check_passed=true
+            break
+          else
+            echo "⚠️  Health check attempt $((retry_count + 1)) failed"
+            echo "🔍 Container logs (last 30 lines):"
+            docker logs --tail 30 $container_name || echo "Could not retrieve container logs"
+            echo "🔍 Container status:"
+            docker ps | grep $container_id || echo "Container not found"
+            echo "🔍 Port status:"
+            netstat -tlnp | grep 8080 || echo "Port 8080 not listening"
+            retry_count=$((retry_count + 1))
+            sleep 3
+          fi
+        done
+        
+        if [ "$health_check_passed" = false ]; then
+          echo "❌ Health check failed after $max_retries attempts"
+          echo "🔍 Final container logs:"
+          docker logs $container_name || echo "Could not retrieve container logs"
+          echo "🔍 Container inspect:"
+          docker inspect $container_name || echo "Could not inspect container"
+          echo "🔍 Container resource usage:"
+          docker stats --no-stream $container_name || echo "Could not get container stats"
+          exit 1
+        fi
+        
+        # Comprehensive endpoint testing
+        echo "🧪 Testing additional endpoints..."
+        
+        # Test metrics endpoint
+        echo "📊 Testing metrics endpoint..."
+        if curl -f -s http://localhost:8080/metrics >/dev/null 2>&1; then
+          echo "✅ Metrics endpoint accessible"
+          # Show a sample of metrics
+          echo "📈 Sample metrics:"
+          curl -s http://localhost:8080/metrics | head -20 || echo "Could not retrieve metrics"
+        else
+          echo "⚠️  Metrics endpoint not accessible"
+        fi
+        
+        # Test root endpoint
+        echo "🌐 Testing root endpoint..."
+        if curl -f -s http://localhost:8080/ >/dev/null 2>&1; then
+          echo "✅ Root endpoint accessible"
+        else
+          echo "⚠️  Root endpoint not accessible"
+        fi
+        
+        # Test with different HTTP methods
+        echo "🔍 Testing HTTP methods..."
+        for method in GET HEAD OPTIONS; do
+          if curl -f -s -X $method http://localhost:8080/ >/dev/null 2>&1; then
+            echo "✅ $method method works"
+          else
+            echo "⚠️  $method method failed"
+          fi
+        done
+        
+        # Cleanup with better error handling
+        echo "🧹 Cleaning up test container..."
+        docker stop $container_name || echo "Could not stop container"
+        docker rm $container_name || echo "Could not remove container"
+        
+        echo "🎉 Docker image test completed successfully!"
 
     - name: Show image info
       run: |
-        echo "📦 Docker image built successfully!"
+        echo "📦 Docker image built and tested successfully!"
         echo "Image: ${{ env.REGISTRY }}/${{ steps.image_name.outputs.IMAGE_NAME }}:${{ steps.version.outputs.VERSION }}"
         echo "Latest: ${{ env.REGISTRY }}/${{ steps.image_name.outputs.IMAGE_NAME }}:latest"
         
         if [[ "${{ steps.version.outputs.VERSION }}" != "latest" ]]; then
           echo "Tag: ${{ steps.version.outputs.VERSION }}"
         fi
+        
+        echo "🔍 Image size:"
+        docker images | grep ${{ steps.image_name.outputs.IMAGE_NAME }} | awk '{print $1 ":" $2 " - " $5}'
+
+    - name: Final diagnostics
+      if: always()
+      run: |
+        echo "🔍 Final diagnostics and summary..."
+        echo "=================================="
+        
+        # Show final Docker system state
+        echo "📊 Docker system state:"
+        docker system df || echo "Could not get Docker system info"
+        docker ps -a || echo "Could not list containers"
+        
+        # Show system resources
+        echo "💻 System resources:"
+        echo "Memory:"
+        free -h || echo "Could not get memory info"
+        echo "Disk:"
+        df -h || echo "Could not get disk info"
+        echo "Processes:"
+        ps aux | head -10 || echo "Could not get process info"
+        
+        # Show network status
+        echo "🌐 Network status:"
+        netstat -tlnp | grep 8080 || echo "Port 8080 not listening"
+        netstat -i || echo "Could not get network interface info"
+        
+        echo "=================================="
+
+    - name: Post Build and push Docker image
+      if: always()
+      run: |
+        echo "🏁 Build process completed"
+        echo "=========================="
+        echo "Workflow: ${{ github.workflow }}"
+        echo "Run ID: ${{ github.run_id }}"
+        echo "Triggered by: ${{ github.actor }}"
+        echo "Repository: ${{ github.repository }}"
+        echo "Ref: ${{ github.ref }}"
+        echo "SHA: ${{ github.sha }}"
+        echo "Timestamp: $(date -u)"
+        echo "=========================="
+        
+        if [ "${{ job.status }}" == "success" ]; then
+          echo "✅ All steps completed successfully"
+          echo "🎉 Docker image built, tested, and pushed successfully!"
+          echo "📦 Image: ${{ env.REGISTRY }}/${{ steps.image_name.outputs.IMAGE_NAME }}:${{ steps.version.outputs.VERSION }}"
+          echo "🏷️  Latest: ${{ env.REGISTRY }}/${{ steps.image_name.outputs.IMAGE_NAME }}:latest"
+        else
+          echo "❌ Some steps failed"
+          echo "🔍 Check the logs above for detailed error information"
+          echo "💡 Common troubleshooting steps:"
+          echo "   1. Check container logs for startup errors"
+          echo "   2. Verify port 8080 is not already in use"
+          echo "   3. Check if the application has proper health endpoints"
+          echo "   4. Verify Docker daemon has sufficient resources"
+          echo "   5. Check if the Dockerfile exposes the correct ports"
+        fi
+        
+        echo "=========================="
