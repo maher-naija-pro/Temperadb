@@ -95,14 +95,27 @@ jobs:
           -p 8080:8080 \
           -e DEBUG=true \
           -e LOG_LEVEL=debug \
-          --name test-container-$(date +%s) \
+          --name "$container_name" \
           ${{ env.REGISTRY }}/${{ steps.image_name.outputs.IMAGE_NAME }}:${{ steps.version.outputs.VERSION }})
         
         echo "Container ID: $container_id"
         echo "Container Name: $container_name"
         
+        # Verify container name is set correctly
+        if [ -z "$container_name" ]; then
+          echo "❌ ERROR: Container name is empty!"
+          exit 1
+        fi
+        
+        # Verify container ID is set correctly
+        if [ -z "$container_id" ]; then
+          echo "❌ ERROR: Container ID is empty!"
+          exit 1
+        fi
+        
         # Enhanced container startup monitoring
         echo "⏳ Waiting for container to start..."
+        echo "🔍 Debug info: container_name='$container_name', container_id='$container_id'"
         max_wait_time=300
         wait_time=0
         container_started=false
@@ -110,7 +123,23 @@ jobs:
         while [ $wait_time -lt $max_wait_time ]; do
           echo "Check $((wait_time/30 + 1)): Container status check... ($wait_time/300 seconds)"
           
+          # Check if container is running using multiple methods
+          container_running=false
+          
+          # Method 1: Check docker ps
           if docker ps | grep -q $container_id; then
+            container_running=true
+          fi
+          
+          # Method 2: Check container state directly
+          if [ "$container_running" = false ]; then
+            container_state=$(docker inspect $container_name 2>/dev/null | jq -r '.[0].State.Status' 2>/dev/null || echo "unknown")
+            if [ "$container_state" = "running" ]; then
+              container_running=true
+            fi
+          fi
+          
+          if [ "$container_running" = true ]; then
             echo "✅ Container is running"
             container_started=true
             
@@ -122,18 +151,38 @@ jobs:
             echo "🔌 Port status check:"
             netstat -tlnp | grep 8080 || echo "Port 8080 not listening yet"
             
+            # Additional debugging - show both container ID and name in ps output
+            echo "🔍 Docker ps output:"
+            docker ps | grep $container_id || echo "Container not found in docker ps"
+            echo "🔍 Docker ps -a output:"
+            docker ps -a | grep $container_name || echo "Container not found in docker ps -a"
+            
             break
           else
             echo "⏰ Container not running yet, waiting... ($wait_time/$max_wait_time seconds)"
             
             # Check if container exists but failed
             if docker ps -a | grep -q $container_name; then
-              echo "❌ Container exists but not running - checking logs:"
-              docker logs $container_name || echo "Could not retrieve container logs"
-              docker inspect $container_name | jq '.[0].State' || echo "Could not inspect container state"
-              echo "🔍 Container exit code:"
-              docker inspect $container_name | jq '.[0].State.ExitCode' || echo "Could not get exit code"
-              break
+              echo "🔍 Container exists but not running - checking status..."
+              container_state=$(docker inspect $container_name | jq -r '.[0].State.Status' 2>/dev/null || echo "unknown")
+              container_exit_code=$(docker inspect $container_name | jq -r '.[0].State.ExitCode' 2>/dev/null || echo "unknown")
+              
+              echo "Container state: $container_state, Exit code: $container_exit_code"
+              
+              # If container has exited with error, break
+              if [ "$container_state" = "exited" ] && [ "$container_exit_code" != "0" ]; then
+                echo "❌ Container exited with error code $container_exit_code"
+                docker logs $container_name || echo "Could not retrieve container logs"
+                break
+              fi
+              
+              # If container is still starting up, continue waiting
+              if [ "$container_state" = "created" ] || [ "$container_state" = "running" ]; then
+                echo "⏳ Container is starting up, continuing to wait..."
+                sleep 30
+                wait_time=$((wait_time + 30))
+                continue
+              fi
             fi
             
             sleep 30
@@ -159,6 +208,12 @@ jobs:
         
         # Wait for application to initialize with progress
         echo "⏳ Waiting for application to initialize..."
+        echo "🔍 Container startup timeline:"
+        echo "  - Container created at: $(date -u)"
+        echo "  - Container ID: $container_id"
+        echo "  - Container Name: $container_name"
+        echo "  - Port mapping: 8080:8080"
+        
         for i in {1..12}; do
           echo "Initialization check $i/12..."
           sleep 5
@@ -264,6 +319,16 @@ jobs:
         docker rm $container_name || echo "Could not remove container"
         
         echo "🎉 Docker image test completed successfully!"
+        
+        # Final test summary
+        echo "📋 Test Summary:"
+        echo "=================="
+        echo "✅ Container started successfully"
+        echo "✅ Container is running and healthy"
+        echo "✅ Port 8080 is accessible"
+        echo "✅ Health endpoint is responding"
+        echo "✅ Application is fully initialized"
+        echo "=================="
 
     - name: Show image info
       run: |
