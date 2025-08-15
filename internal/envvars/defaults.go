@@ -6,9 +6,9 @@ import "time"
 var (
 	// Server Configuration Defaults
 	DefaultPort         = "8080"
-	DefaultReadTimeout  = 30 * time.Second
-	DefaultWriteTimeout = 30 * time.Second
-	DefaultIdleTimeout  = 120 * time.Second
+	DefaultReadTimeout  = 300 * time.Second
+	DefaultWriteTimeout = 300 * time.Second
+	DefaultIdleTimeout  = 220 * time.Second
 
 	// Storage Configuration Defaults
 	DefaultDataFile    = "/tmp/data.tsv"
