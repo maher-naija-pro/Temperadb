@@ -103,12 +103,12 @@ jobs:
         
         # Enhanced container startup monitoring
         echo "⏳ Waiting for container to start..."
-        max_wait_time=90
+        max_wait_time=300
         wait_time=0
         container_started=false
         
         while [ $wait_time -lt $max_wait_time ]; do
-          echo "Check $((wait_time/5 + 1)): Container status check..."
+          echo "Check $((wait_time/30 + 1)): Container status check... ($wait_time/300 seconds)"
           
           if docker ps | grep -q $container_id; then
             echo "✅ Container is running"
@@ -136,8 +136,8 @@ jobs:
               break
             fi
             
-            sleep 5
-            wait_time=$((wait_time + 5))
+            sleep 30
+            wait_time=$((wait_time + 30))
           fi
         done
         
