@@ -110,13 +110,25 @@ jobs:
         
         echo "Container ID: $CONTAINER_ID"
         
-        # Wait for container to start
+        # Wait for container to start and verify it's running
         echo "⏳ Waiting for container to start..."
-        sleep 10
+        sleep 5
         
-        # Verify container is running
-        if ! docker ps | grep -q "$CONTAINER_ID"; then
-          echo "❌ Container failed to start"
+        # More robust container verification
+        echo "🔍 Verifying container status..."
+        if ! docker ps --format "table {{.ID}}\t{{.Names}}\t{{.Status}}" | grep -q "$CONTAINER_NAME"; then
+          echo "❌ Container not found in running containers list"
+          echo "🔍 Container logs:"
+          docker logs "$CONTAINER_NAME" || echo "Could not retrieve logs"
+          echo "🔍 Container inspect:"
+          docker inspect "$CONTAINER_NAME" | jq '.[0].State' || echo "Could not inspect container"
+          exit 1
+        fi
+        
+        # Additional verification using container inspect
+        CONTAINER_STATUS=$(docker inspect "$CONTAINER_NAME" --format='{{.State.Status}}' 2>/dev/null)
+        if [ "$CONTAINER_STATUS" != "running" ]; then
+          echo "❌ Container is not in running state. Current status: $CONTAINER_STATUS"
           echo "🔍 Container logs:"
           docker logs "$CONTAINER_NAME" || echo "Could not retrieve logs"
           echo "🔍 Container inspect:"
@@ -126,13 +138,43 @@ jobs:
         
         echo "✅ Container is running"
         
+        # Show container status for debugging
+        echo "📋 Container status:"
+        docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep "$CONTAINER_NAME" || echo "Container not found in ps output"
+        
+        # Wait for health check to pass
+        echo "🏥 Waiting for health check to pass..."
+        HEALTH_ATTEMPTS=0
+        MAX_HEALTH_ATTEMPTS=30
+        while [ $HEALTH_ATTEMPTS -lt $MAX_HEALTH_ATTEMPTS ]; do
+          HEALTH_STATUS=$(docker inspect "$CONTAINER_NAME" --format='{{.State.Health.Status}}' 2>/dev/null)
+          if [ "$HEALTH_STATUS" = "healthy" ]; then
+            echo "✅ Health check passed"
+            break
+          elif [ "$HEALTH_STATUS" = "unhealthy" ]; then
+            echo "❌ Health check failed"
+            docker logs "$CONTAINER_NAME" || echo "Could not retrieve logs"
+            exit 1
+          else
+            echo "⏳ Waiting for health check... (attempt $((HEALTH_ATTEMPTS + 1))/$MAX_HEALTH_ATTEMPTS)"
+            sleep 2
+            HEALTH_ATTEMPTS=$((HEALTH_ATTEMPTS + 1))
+          fi
+        done
+        
+        if [ $HEALTH_ATTEMPTS -eq $MAX_HEALTH_ATTEMPTS ]; then
+          echo "⚠️  Health check timeout after $MAX_HEALTH_ATTEMPTS attempts, proceeding with basic connectivity test"
+          echo "🔍 Container logs (last 20 lines):"
+          docker logs --tail 20 "$CONTAINER_NAME" || echo "Could not retrieve logs"
+        fi
+        
         # Wait for application to initialize
         echo "⏳ Waiting for application to initialize..."
         for i in {1..20}; do
           echo "Initialization check $i/20..."
           
-          # Check if container is still running
-          if ! docker ps | grep -q "$CONTAINER_ID"; then
+          # Check if container is still running using container name
+          if ! docker ps --format "table {{.Names}}" | grep -q "$CONTAINER_NAME"; then
             echo "❌ Container stopped during initialization"
             docker logs "$CONTAINER_NAME" || echo "Could not retrieve logs"
             exit 1
