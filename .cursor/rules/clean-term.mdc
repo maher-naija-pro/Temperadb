@@ -1,7 +1,0 @@
----
-description: "Clean terminal command"
-alwaysApply: true
-prepend: |
-  @clear
-
----

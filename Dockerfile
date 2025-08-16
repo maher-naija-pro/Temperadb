@@ -2,6 +2,9 @@
 ARG VERSION=dev
 ARG GOOS=linux
 ARG GOARCH=amd64
+ARG PORT=8080
+ARG USER_ID=1001
+ARG GROUP_ID=1001
 
 # Build stage
 FROM golang:1.24-alpine AS builder
@@ -37,8 +40,10 @@ FROM alpine:latest
 RUN apk --no-cache add ca-certificates tzdata
 
 # Create non-root user
-RUN addgroup -g 1001 -S timeseriesdb && \
-    adduser -u 1001 -S timeseriesdb -G timeseriesdb
+ARG USER_ID
+ARG GROUP_ID
+RUN addgroup -g ${GROUP_ID} -S timeseriesdb && \
+    adduser -u ${USER_ID} -S timeseriesdb -G timeseriesdb
 
 # Set working directory
 WORKDIR /app
@@ -57,10 +62,11 @@ RUN mkdir -p /app/data /app/data/backups && \
 USER timeseriesdb
 
 # Expose port
-EXPOSE 8080
+ARG PORT
+EXPOSE ${PORT}
 
 # Set environment variables
-ENV PORT=8080
+ENV PORT=${PORT}
 ENV DATA_FILE=/app/data/data.tsv
 ENV DATA_DIR=/app/data
 ENV BACKUP_DIR=/app/data/backups

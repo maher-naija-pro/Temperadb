@@ -12,10 +12,10 @@ var (
 	DefaultShutdownTimeout = 30 * time.Second
 
 	// Storage Configuration Defaults
-	DefaultDataFile    = "/tmp/data.tsv"
-	DefaultDataDir     = "/tmp"
+	DefaultDataFile    = "./data/data.tsv"
+	DefaultDataDir     = "./data"
 	DefaultMaxFileSize = int64(1073741824) // 1GB
-	DefaultBackupDir   = "/tmp/backups"
+	DefaultBackupDir   = "./data/backups"
 	DefaultCompression = false
 
 	// LSM Tree Configuration Defaults
@@ -46,6 +46,11 @@ var (
 	// Monitoring and Metrics Defaults
 	DefaultMetricsEnabled = true
 	DefaultStatsInterval  = 60 * time.Second // Stats every minute
+
+	// Database Configuration Defaults
+	DefaultMaxConnections = 100
+	DefaultConnectionTTL  = 5 * time.Minute  // 5 minutes
+	DefaultQueryTimeout   = 30 * time.Second // 30 seconds
 
 	// Logging Configuration Defaults
 	DefaultLogLevel      = "info"

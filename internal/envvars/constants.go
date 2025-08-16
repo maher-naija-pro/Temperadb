@@ -49,6 +49,13 @@ const (
 	StatsInterval  = "STATS_INTERVAL"
 )
 
+// Environment variable keys for database configuration
+const (
+	MaxConnections = "MAX_CONNECTIONS"
+	ConnectionTTL  = "CONNECTION_TTL"
+	QueryTimeout   = "QUERY_TIMEOUT"
+)
+
 // Environment variable keys for logging configuration
 const (
 	// Logging Configuration

@@ -1,1 +1,22 @@
+---
+alwaysApply: true
+---
 
+
+
+alwaysApply: true
+description: |
+  Testing Standards for TimeSeriesDB
+
+  - All code must be covered by unit tests, including error cases and edge conditions.
+  - Use Go's standard testing package (`testing`) and, where appropriate, testify/assert for clarity.
+  - Each exported function or method must have at least one test.
+  - Tests must be deterministic and not depend on external state or timing (use mocks/fakes where needed).
+  - All errors must be asserted and checked in tests; do not ignore error returns.
+  - Use table-driven tests for functions with multiple input/output scenarios.
+  - Test files must be named with `_test.go` suffix and reside in the same package as the code under test.
+  - Avoid using global state in tests; clean up any resources (files, goroutines, etc.) after each test.
+  - Use t.Parallel() for tests that can safely run concurrently.
+  - All tests must pass in CI and locally before merging.
+  - Code coverage must not decrease; strive for >90% coverage on core logic.
+  - Integration and end-to-end tests should be placed in a separate directory (e.g., `test/` or `integration/`).

@@ -177,17 +177,46 @@ For detailed information, see:
 ```
 tsdb/
 ├── main.go                    # Main application entry point
+├── main_test.go              # Main application tests
 ├── go.mod                     # Go module dependencies
 ├── go.sum                     # Go module checksums
+├── Dockerfile                 # Docker container configuration
+├── Makefile                   # Build and development commands
+├── .env                       # Environment variables
+├── env.example                # Environment variables template
+├── .gitignore                 # Git ignore patterns
+├── .dockerignore              # Docker ignore patterns
+├── LICENSE                    # License file
 ├── internal/                  # Core packages
-│   ├── storage/              # Data storage implementation
+│   ├── api/                  # HTTP API implementation
+│   │   ├── http/             # HTTP server and handlers
+│   │   │   ├── http_handlers/        # HTTP request handlers
+│   │   │   └── test_data_register/   # Test data registration
+│   │   │       ├── shard_default/    # Default shard configuration
+│   │   │       │   ├── segments/     # Data segments
+│   │   │       │   └── wal/          # Write-ahead log
+│   │   └── middleware/       # HTTP middleware components
+│   ├── config/               # Configuration management
+│   ├── envvars/              # Environment variable handling
+│   ├── errors/               # Custom error definitions
 │   ├── ingestion/            # Line protocol parsing
-│   ├── api/                  # HTTP handlers and routing
+│   ├── logger/               # Logging implementation
 │   ├── metrics/              # Prometheus metrics collection
-│   └── config/               # Configuration management
+│   ├── server/               # Server implementation
+│   ├── storage/              # Data storage implementation
+│   └── types/                # Type definitions
 ├── test/                     # Test files and benchmarks
+│   ├── benchmark/            # Performance benchmarks
+│   ├── helpers/              # Test helper utilities
+│   ├── integration/          # Integration tests
+│   └── utils/                # Test utility functions
 ├── docs/                     # Documentation files
 ├── scripts/                  # Utility and build scripts
+├── bin/                      # Binary output directory
+├── data/                     # Data storage directory
+├── coverage/                 # Test coverage reports
+├── benchmark-results/        # Benchmark results
+├── performance-dashboard/    # Performance monitoring dashboard
 └── README.md                 # This file
 ```
 

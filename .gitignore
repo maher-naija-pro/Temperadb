@@ -109,7 +109,7 @@ dist/
 
 # Data files
 *.tsv
-
+data
 
 # Text files
 
